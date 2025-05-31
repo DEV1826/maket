@@ -1,26 +1,36 @@
 {
   "project_info": {
-    "project_number": "51578762078",
-    "project_id": "market-3ac79",
-    "storage_bucket": "market-3ac79.firebasestorage.app"
+    "project_number": "45874691553",
+    "project_id": "market-c0fa5",
+    "storage_bucket": "market-c0fa5.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:51578762078:android:9ab7c188e32f73fab0d5cf",
+        "mobilesdk_app_id": "1:45874691553:android:e62568230ffe41c42ba6a0",
         "android_client_info": {
           "package_name": "com.market"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "45874691553-0h9hvvvv3i40ss6kbik89apjdt53i2tm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyCxSWlLFQQAAa0h-XjjaNNmmSFA1e_yuKM"
+          "current_key": "AIzaSyCaouMDrjm3Y2VLqsnGWccG1aOrpd4W6D8"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "45874691553-0h9hvvvv3i40ss6kbik89apjdt53i2tm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
