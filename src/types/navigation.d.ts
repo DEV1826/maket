@@ -15,6 +15,9 @@ export type RootStackParamList = {
   Stock: undefined;
   ShoppingListGenerator: undefined;
   ShoppingLists: undefined; // Écran listant toutes les listes de l'utilisateur
+  MealPlanner: undefined; // Nouvelle page pour le planificateur de repas
+  BudgetManagement: undefined; // Nouvelle page pour la gestion du budget
+
   ShoppingListDetail: { listId: string };
   // Signature d'index pour permettre d'autres écrans ou des paramètres plus complexes.
   // C'est essentiel pour satisfaire la contrainte 'ParamListBase'.

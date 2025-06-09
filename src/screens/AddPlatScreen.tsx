@@ -8,7 +8,7 @@ import auth from '@react-native-firebase/auth';
 import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
 import Icon from 'react-native-vector-icons/Ionicons';
 
-// Importez les types de navigation depuis votre fichier global
+//  navigation 
 import { RootStackParamList } from '../types/navigation';
 
 type AddPlatScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'AddPlat'>;
@@ -193,7 +193,7 @@ const AddPlatScreen: React.FC = () => {
       portions: parseInt(portions) || 1,
       categorie: categorie.trim(),
       imageUrl: finalImageUrl,
-      // Utiliser un timestamp pour la création et la mise à jour
+      //  timestamp pour la création et la mise à jour
       createdAt: isEditing ? firestore.FieldValue.serverTimestamp() : (firestore.FieldValue.serverTimestamp() || new Date()), // Ajouté un fallback pour le type
       userId: userId,
     };

@@ -2,9 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Icon from 'react-native-vector-icons/Ionicons'; // Assurez-vous d'avoir installé react-native-vector-icons
+import Icon from 'react-native-vector-icons/Ionicons';
 
-// Importez les types de navigation depuis votre fichier global
 import { RootStackParamList } from '../types/navigation';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -12,7 +11,6 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'H
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
 
-  // Fonction pour obtenir la date et l'heure actuelles formatées
   const getFormattedDateTime = () => {
     const now = new Date();
     const options: Intl.DateTimeFormatOptions = {
@@ -39,6 +37,20 @@ const HomeScreen: React.FC = () => {
       <Text style={styles.sectionTitle}>Gérer mes repas</Text>
 
       <View style={styles.grid}>
+        {/* NOUVEAUX BOUTONS */}
+        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('MealPlanner')}>
+          <Icon name="restaurant-outline" size={40} color="#FFD700" /> {/* Jaune Or */}
+          <Text style={styles.cardTitle}>Planifier les Repas</Text>
+          <Text style={styles.cardDescription}>Organiser mes menus hebdomadaires</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('BudgetManagement')}>
+          <Icon name="wallet-outline" size={40} color="#20B2AA" /> {/* Vert d'Eau */}
+          <Text style={styles.cardTitle}>Gestion du Budget</Text>
+          <Text style={styles.cardDescription}>Suivre mes dépenses alimentaires</Text>
+        </TouchableOpacity>
+        {/* FIN DES NOUVEAUX BOUTONS */}
+
         <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('PlatsList')}>
           <Icon name="fast-food-outline" size={40} color="green" />
           <Text style={styles.cardTitle}>Mes Plats</Text>
@@ -57,10 +69,10 @@ const HomeScreen: React.FC = () => {
           <Text style={styles.cardDescription}>Suivre les ingrédients disponibles</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('ShoppingListGenerator')}>
+        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('ShoppingLists')}> {/* Notez que c'est ShoppingLists et non ShoppingListGenerator */}
           <Icon name="cart-outline" size={40} color="#AF52DE" />
-          <Text style={styles.cardTitle}>Liste de Courses</Text>
-          <Text style={styles.cardDescription}>Générer des listes intelligentes</Text>
+          <Text style={styles.cardTitle}>Mes Listes de Courses</Text>
+          <Text style={styles.cardDescription}>Accéder à mes listes et les gérer</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Historique')}>
@@ -132,7 +144,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   card: {
-    width: '48%', // Environ la moitié de la largeur avec un peu d'espace
+    width: '48%',
     backgroundColor: 'white',
     borderRadius: 15,
     padding: 20,
@@ -144,7 +156,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 5,
-    minHeight: 150, // Hauteur minimale pour que les cartes aient une taille similaire
+    minHeight: 150,
   },
   cardTitle: {
     fontSize: 18,

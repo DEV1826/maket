@@ -36,7 +36,7 @@ const AuthScreen: React.FC = () => {
   // Initialisation et configuration
   useEffect(() => {
     try {
-      // Vérifier si Firebase est déjà initialisé
+      //  Firebase est déjà initialisé
       const app = initializeApp(firebaseConfig, 'market-app');
       console.log('Firebase initialized successfully');
       

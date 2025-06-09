@@ -11,13 +11,11 @@ import {
   Share,
   Clipboard,
 } from 'react-native';
-import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore'
-
-import { FieldValue } from '@react-native-firebase/firestore';
+import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useRoute, RouteProp } from '@react-navigation/native';
-import { RootStackParamList } from '../types/navigation';
+import { RootStackParamList } from '../types/navigation'; 
 
 type ShoppingListDetailScreenRouteProp = RouteProp<RootStackParamList, 'ShoppingListDetail'>;
 
@@ -28,16 +26,18 @@ interface ShoppingListItem {
   unit: string;
   isCompleted: boolean;
   addedBy: string;
-  createdAt: FirebaseFirestoreTypes.FieldValue;
+  //  l'écriture, mais sera Timestamp après lecture
+  createdAt: FirebaseFirestoreTypes.FieldValue | FirebaseFirestoreTypes.Timestamp;
 }
 
 interface ShoppingListHeader {
-    id: string;
-    name: string;
-    ownerId: string;
-    sharedWith: string[];
-    createdAt: FirebaseFirestoreTypes.FieldValue; // <<< AJOUTER POUR CETTE INTERFACE AUSSI
-    lastModified: FirebaseFirestoreTypes.FieldValue;
+  id: string;
+  name: string;
+  ownerId: string;
+  sharedWith: string[];
+  // createdAt et lastModified peuvent être FieldValue au moment de l'écriture, mais seront Timestamp après lecture
+  createdAt: FirebaseFirestoreTypes.FieldValue | FirebaseFirestoreTypes.Timestamp;
+  lastModified: FirebaseFirestoreTypes.FieldValue | FirebaseFirestoreTypes.Timestamp;
 }
 
 const ShoppingListDetailScreen: React.FC = () => {
@@ -46,7 +46,7 @@ const ShoppingListDetailScreen: React.FC = () => {
 
   const [listName, setListName] = useState('');
   const [listOwnerId, setListOwnerId] = useState('');
-  const [sharedUsers, setSharedUsers] = useState<string[]>([]); // Pourrait contenir les UIDs des utilisateurs partagés
+  const [sharedUsers, setSharedUsers] = useState<string[]>([]);
   const [items, setItems] = useState<ShoppingListItem[]>([]);
   const [newItemName, setNewItemName] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState('');
@@ -67,12 +67,16 @@ const ShoppingListDetailScreen: React.FC = () => {
       .collection('shoppingLists')
       .doc(listId)
       .onSnapshot(
-        documentSnapshot => {
-          if (documentSnapshot.exists()) {
-            const data = documentSnapshot.data() as ShoppingListHeader;
-            setListName(data.name);
-            setListOwnerId(data.ownerId);
-            setSharedUsers(data.sharedWith || []);
+        (snapshot) => {
+          if (snapshot.exists()) {
+            const data = snapshot.data() as ShoppingListHeader;
+            if (data && data.name && data.ownerId) {
+              setListName(data.name);
+              setListOwnerId(data.ownerId);
+              setSharedUsers(data.sharedWith || []);
+            } else {
+              console.warn('Incomplete data received from Firestore');
+            }
           } else {
             Alert.alert('Erreur', 'Cette liste de courses n\'existe plus.');
             // navigation.goBack(); // Optionnel: revenir en arrière si la liste est supprimée

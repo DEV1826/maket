@@ -33,23 +33,23 @@ const ShoppingListsScreen: React.FC<ShoppingListsScreenProps> = ({ route }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={shoppingLists}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.listItem}
-            onPress={() => handleListPress(item.id)}
-          >
-            <Text style={styles.listName}>{item.name}</Text>
-            <Text style={styles.listDate}>
-              {new Date(item.createdAt).toLocaleDateString()}
-            </Text>
-          </TouchableOpacity>
-        )}
-      />
-    </View>
+    <FlatList
+      style={styles.container}
+      data={shoppingLists}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => (
+        <TouchableOpacity
+          style={styles.listItem}
+          onPress={() => handleListPress(item.id)}
+        >
+          <Text style={styles.listName}>{item.name}</Text>
+          <Text style={styles.listDate}>
+            {new Date(item.createdAt).toLocaleDateString()}
+          </Text>
+        </TouchableOpacity>
+      )}
+      contentContainerStyle={styles.contentContainer}
+    />
   );
 };
 
@@ -57,6 +57,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  contentContainer: {
     padding: 16,
   },
   listItem: {

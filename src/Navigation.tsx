@@ -16,6 +16,8 @@ import AddPlatScreen from './screens/AddPlatScreen';
 import FoyerScreen from './screens/FoyerScreen';
 import ShoppingListGeneratorScreen from './screens/ShoppingListGeneratorScreen';
 import ShoppingListsScreen from './screens/ShoppingListsScreen';
+import MealPlannerScreen from './screens/MealPlannerScreen'; // Importez le nouveau fichier
+import BudgetManagementScreen from './screens/BudgetManagementScreen'; // Importez le nouveau fichier
 import PlatDetailScreen from './screens/PlatDetailScreen'; // Importez le nouveau fichier
 // Importez vos autres écrans Foyer, Stock, ShoppingListGenerator si vous les avez
 
@@ -59,6 +61,8 @@ const AppNavigator: React.FC = () => {
         title: route.params?.listId ? 'Liste de Courses' : 'Détail Liste', // Le titre sera mis à jour dynamiquement dans l'écran
       })} />
       {/* Vous pouvez retirer ShoppingListGenerator si vous n'en avez plus besoin, ou le laisser pour une future implémentation de génération auto */}
+      <Stack.Screen name="MealPlanner" component={MealPlannerScreen} options={{ title: 'Planificateur de Repas' }} />
+      <Stack.Screen name="BudgetManagement" component={BudgetManagementScreen} options={{ title: 'Gestion du Budget' }} />
        {/* ... */}
 
       
