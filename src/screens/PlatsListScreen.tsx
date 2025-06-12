@@ -143,8 +143,8 @@ const PlatsListScreen: React.FC = () => {
       return;
     }
 
-    setSearchLoading(true); // Active l'indicateur de chargement
-    setSelectedArea(null); // Désélectionne l'Area si une recherche par nom est lancée
+    setSearchLoading(true); 
+    setSelectedArea(null); 
 
     try {
       const response = await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(platSearchTerm)}`);
@@ -190,13 +190,12 @@ const PlatsListScreen: React.FC = () => {
       console.error("Erreur lors de la recherche de plats par area:", error);
       Alert.alert('Erreur', 'Impossible de charger les plats par zone. Vérifiez votre connexion.');
     } finally {
-      setAreaLoading(false); // Désactive l'indicateur de chargement
+      setAreaLoading(false);
     }
   }, []);
 
   // --- Effets d'initialisation et de gestion des changements ---
 
-  // Effet au montage pour charger toutes les Areas disponibles
   useEffect(() => {
     fetchAreas();
   }, [fetchAreas]);
@@ -236,17 +235,17 @@ const PlatsListScreen: React.FC = () => {
 
   const onCountryOpen = useCallback(() => {
     setOpenCityPicker(false);
-    setOpenAreaPicker(false); // Ferme aussi le picker d'Area
+    setOpenAreaPicker(false); 
   }, []);
 
   const onCityOpen = useCallback(() => {
     setOpenCountryPicker(false);
-    setOpenAreaPicker(false); // Ferme aussi le picker d'Area
+    setOpenAreaPicker(false); 
   }, []);
 
   const onAreaOpen = useCallback(() => {
     setOpenCountryPicker(false);
-    setOpenCityPicker(false); // Ferme aussi le picker de ville
+    setOpenCityPicker(false); 
   }, []);
 
   const renderDishItem = useCallback(({ item }: { item: MealDbDish }) => (
@@ -394,7 +393,6 @@ const PlatsListScreen: React.FC = () => {
       alignItems: 'center',
       marginBottom: 20,
       marginTop: 20,
-      // ZIndex élevé pour être au-dessus des autres pickers
       zIndex: 10,
     },
     platSearchInput: {
