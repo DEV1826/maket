@@ -17,6 +17,7 @@ export type RootStackParamList = {
   ShoppingLists: undefined; // Écran listant toutes les listes de l'utilisateur
   MealPlanner: undefined; // Nouvelle page pour le planificateur de repas
   BudgetManagement: undefined; // Nouvelle page pour la gestion du budget
+  NearbyMarkets: undefined; // Nouvelle page pour localiser les marchés à proximité
 
   ShoppingListDetail: { listId: string };
   // Signature d'index pour permettre d'autres écrans ou des paramètres plus complexes.

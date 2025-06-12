@@ -39,13 +39,13 @@ const HomeScreen: React.FC = () => {
       <View style={styles.grid}>
         {/* NOUVEAUX BOUTONS */}
         <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('MealPlanner')}>
-          <Icon name="restaurant-outline" size={40} color="#FFD700" /> {/* Jaune Or */}
+          <Icon name="restaurant-outline" size={40} color="#FFD700" />
           <Text style={styles.cardTitle}>Planifier les Repas</Text>
           <Text style={styles.cardDescription}>Organiser mes menus hebdomadaires</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('BudgetManagement')}>
-          <Icon name="wallet-outline" size={40} color="#20B2AA" /> {/* Vert d'Eau */}
+          <Icon name="wallet-outline" size={40} color="#20B2AA" />
           <Text style={styles.cardTitle}>Gestion du Budget</Text>
           <Text style={styles.cardDescription}>Suivre mes dépenses alimentaires</Text>
         </TouchableOpacity>
@@ -69,7 +69,7 @@ const HomeScreen: React.FC = () => {
           <Text style={styles.cardDescription}>Suivre les ingrédients disponibles</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('ShoppingLists')}> {/* Notez que c'est ShoppingLists et non ShoppingListGenerator */}
+        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('ShoppingLists')}>
           <Icon name="cart-outline" size={40} color="#AF52DE" />
           <Text style={styles.cardTitle}>Mes Listes de Courses</Text>
           <Text style={styles.cardDescription}>Accéder à mes listes et les gérer</Text>
@@ -85,6 +85,12 @@ const HomeScreen: React.FC = () => {
           <Icon name="person-outline" size={40} color="#BF5620" />
           <Text style={styles.cardTitle}>Moi</Text>
           <Text style={styles.cardDescription}>Mes préférences, mon profil</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('NearbyMarkets')}>
+          <Icon name="location-outline" size={40} color="#E74C3C" />
+          <Text style={styles.cardTitle}>Marchés Proches</Text>
+          <Text style={styles.cardDescription}>Localiser les marchés à proximité</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
