@@ -1,4 +1,4 @@
-// PlatsListScreen.tsx (Version avec intégration du filtrage par zone TheMealDB)
+// PlatsListScreen.tsx
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, TextInput, FlatList, Image, ActivityIndicator, Alert, ViewStyle, TextStyle, ImageStyle } from 'react-native';
@@ -7,9 +7,6 @@ import DropDownPicker from 'react-native-dropdown-picker';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/Ionicons';
-
-// IMPORTS DES DONNÉES LOCALES ET DES TYPES
-// IMPORTANT : VÉRIFIEZ ET AJUSTEZ CES CHEMINS SELON LA STRUCTURE DE VOTRE PROJET !
 import ALL_COUNTRIES_DATA from '../../data/countries.json';
 import ALL_CITIES_DATA_RAW from '../../data/all_cities.json';
 
@@ -27,8 +24,6 @@ type RootStackParamList = {
 type PlatsListScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'PlatsList'>;
 
 const windowHeight = Dimensions.get('window').height;
-
-// Interface pour les plats retournés par TheMealDB (simplifiée pour les besoins de l'affichage)
 interface MealDbDish {
   idMeal: string;
   strMeal: string;
@@ -37,11 +32,6 @@ interface MealDbDish {
   strArea?: string; // Origine/Cuisine du plat
 }
 
-// MAPPING DES CODES PAYS VERS LES RÉGIONS/CUISINES DE TheMealDB
-// Ce mapping est une heuristique et peut ne pas couvrir tous les pays ou correspondre parfaitement.
-// Basé sur les zones disponibles depuis https://www.themealdb.com/api/json/v1/1/list.php?a=list
-// Note: TheMealDB n'a pas de catégorie générique "African" (Africain).
-// Si un pays africain n'a pas de correspondance spécifique (ex: Egyptian, Moroccan), il n'y aura pas de suggestion automatique.
 const countryToAreaMap: { [key: string]: string } = {
   "US": "American",
   "GB": "British",
@@ -68,11 +58,11 @@ const countryToAreaMap: { [key: string]: string } = {
   "TN": "Tunisian",
   "TR": "Turkish",
   "VN": "Vietnamese",
-  "SY": "Syrian", // Example: Syria -> Syrian
-  "PH": "Filipino", // Example: Philippines -> Filipino
-  "NL": "Dutch", // Example: Netherlands -> Dutch
-  "PK": "Pakistani", // Example: Pakistan -> Pakistani
-  "BD": "Bengali", // Example: Bangladesh -> Bengali
+  "SY": "Syrian",
+  "PH": "Filipino", 
+  "NL": "Dutch", 
+  "PK": "Pakistani", 
+  "BD": "Bengali",
 };
 
 const getAreaFromCountryCode = (countryCode: string | null): string | null => {
@@ -89,36 +79,25 @@ const PlatsListScreen: React.FC = () => {
   const [countriesItems, setCountriesItems] = useState<CountryDataItem[]>(
     [...ALL_COUNTRIES_DATA].sort((a, b) => a.label.localeCompare(b.label))
   );
-
-  // --- États pour le sélecteur de Villes ---
   const [openCityPicker, setOpenCityPicker] = useState(false);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [citiesItems, setCitiesItems] = useState<CityPickerItem[]>([]);
-
-  // --- États pour la recherche de plats par nom ---
   const [platSearchTerm, setPlatSearchTerm] = useState('');
-  const [searchLoading, setSearchLoading] = useState(false); // Indicateur de chargement pour la recherche par nom
+  const [searchLoading, setSearchLoading] = useState(false);
 
-  // --- États pour la navigation par Area (Zones Culinaires) ---
   const [openAreaPicker, setOpenAreaPicker] = useState(false);
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
   const [areaItems, setAreaItems] = useState<{ label: string; value: string }[]>([]);
-  const [areaLoading, setAreaLoading] = useState(false); // Indicateur de chargement pour la recherche par Area
+  const [areaLoading, setAreaLoading] = useState(false); 
 
-  // --- État pour stocker les plats affichés (soit par recherche, soit par Area) ---
   const [displayedDishes, setDisplayedDishes] = useState<MealDbDish[]>([]);
 
-
-  // --- Fonctions de logique ---
-
-  // Fonction pour trouver le nom complet du pays à partir de son code ISO
   const getCountryLabelFromValue = useCallback((isoCode: string | null): string => {
     if (!isoCode) return 'Aucun';
     const foundCountry = ALL_COUNTRIES_DATA.find(c => c.value === isoCode);
     return foundCountry ? foundCountry.label : 'Non trouvé';
   }, []);
 
-  // Fonction pour filtrer et préparer les villes en fonction du pays sélectionné
   const filterAndPrepareCities = useCallback((countryIsoCode: string | null) => {
     const countryName = getCountryLabelFromValue(countryIsoCode);
     let preparedCities: CityPickerItem[] = [];
@@ -136,8 +115,6 @@ const PlatsListScreen: React.FC = () => {
     }
 
     setCitiesItems(preparedCities);
-    // Important: Ne pas réinitialiser selectedCity ici, car la sélection de ville peut être conservée
-    // si l'utilisateur change de pays, mais reste dans la même ville (ex: de France/Paris à Allemagne/Paris)
   }, [getCountryLabelFromValue]);
 
   // Fonction pour charger toutes les Areas depuis TheMealDB (au montage du composant)
@@ -195,8 +172,8 @@ const PlatsListScreen: React.FC = () => {
       return;
     }
 
-    setAreaLoading(true); // Active l'indicateur de chargement
-    setPlatSearchTerm(''); // Vide le terme de recherche par nom si on navigue par Area
+    setAreaLoading(true); 
+    setPlatSearchTerm(''); 
 
     try {
       const response = await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?a=${encodeURIComponent(area)}`);
@@ -224,52 +201,39 @@ const PlatsListScreen: React.FC = () => {
     fetchAreas();
   }, [fetchAreas]);
 
-  // Effet pour déclencher le chargement des villes lorsque le pays sélectionné change
-  // ET pour réinitialiser la cuisine suggérée
   useEffect(() => {
     filterAndPrepareCities(selectedCountryCode);
-    setSelectedArea(null); // Réinitialise l'Area sélectionnée quand le pays change
-    setPlatSearchTerm(''); // Vide le terme de recherche aussi
-    setDisplayedDishes([]); // Vide les plats affichés pour éviter la confusion
+    setSelectedArea(null);
+    setPlatSearchTerm('');
+    setDisplayedDishes([]);
   }, [selectedCountryCode, filterAndPrepareCities]);
 
-  // NOUVEL EFFET : Déclencher la recherche de plats par Area lorsque la VILLE change,
-  // en tentant de suggérer une cuisine basée sur le PAYS.
   useEffect(() => {
     // Si un pays ET une ville sont sélectionnés
     if (selectedCountryCode && selectedCity) {
       const suggestedArea = getAreaFromCountryCode(selectedCountryCode);
       if (suggestedArea) {
-        // Déclenche le changement de l'état selectedArea, ce qui va ensuite
-        // déclencher l'autre useEffect pour fetchDishesByArea
         setSelectedArea(suggestedArea);
         console.log(`Suggestion de cuisine automatique pour ${getCountryLabelFromValue(selectedCountryCode)}: ${suggestedArea}`);
       } else {
-        // Si aucune cuisine suggérée pour le pays sélectionné, vide l'Area et les plats
         setSelectedArea(null);
         setDisplayedDishes([]);
         console.log(`Aucune cuisine suggérée via mapping pour ${getCountryLabelFromValue(selectedCountryCode)}.`);
       }
     } else if (!selectedCountryCode && !selectedCity) {
-      // Si rien n'est sélectionné, vide tout
       setSelectedArea(null);
       setDisplayedDishes([]);
     }
-  }, [selectedCountryCode, selectedCity, getCountryLabelFromValue]); // Dépend de ces sélections
-
-  // Effet pour déclencher la recherche par Area lorsque selectedArea change
-  // S'exécute uniquement si platSearchTerm est vide (la recherche par nom a priorité)
+  }, [selectedCountryCode, selectedCity, getCountryLabelFromValue]); // Dépend de 
   useEffect(() => {
-    if (selectedArea && !platSearchTerm.trim()) { // S'assure que la recherche par nom n'est pas active
+    if (selectedArea && !platSearchTerm.trim()) { 
       fetchDishesByArea(selectedArea);
     } else if (!selectedArea && !platSearchTerm.trim()) {
-      // Si aucune Area sélectionnée et pas de recherche par nom, vide la liste
       setDisplayedDishes([]);
     }
   }, [selectedArea, fetchDishesByArea, platSearchTerm]);
 
 
-  // --- Callbacks pour la gestion de l'ouverture/fermeture des pickers ---
   const onCountryOpen = useCallback(() => {
     setOpenCityPicker(false);
     setOpenAreaPicker(false); // Ferme aussi le picker d'Area
@@ -285,7 +249,6 @@ const PlatsListScreen: React.FC = () => {
     setOpenCityPicker(false); // Ferme aussi le picker de ville
   }, []);
 
-  // Composant pour afficher chaque plat trouvé (utilisé dans FlatList)
   const renderDishItem = useCallback(({ item }: { item: MealDbDish }) => (
     <View style={styles.dishResultCard}>
       <View style={styles.dishInfo}>
@@ -299,8 +262,6 @@ const PlatsListScreen: React.FC = () => {
     </View>
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ), []);
-
-  // Définition explicite de l'interface des styles pour aider TypeScript
   interface ComponentStyles {
     container: ViewStyle;
     addPlatButton: ViewStyle;
@@ -611,7 +572,7 @@ const PlatsListScreen: React.FC = () => {
             setOpen={setOpenAreaPicker}
             setValue={(callback) => {
               setSelectedArea(callback);
-              setPlatSearchTerm(''); // Vider le terme de recherche par nom si une Area est sélectionnée
+              setPlatSearchTerm('');
             }}
             setItems={setAreaItems}
             placeholder="Sélectionner une cuisine (Area)"
