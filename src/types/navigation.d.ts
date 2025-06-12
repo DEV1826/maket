@@ -18,6 +18,7 @@ export type RootStackParamList = {
   MealPlanner: undefined; // Nouvelle page pour le planificateur de repas
   BudgetManagement: undefined; // Nouvelle page pour la gestion du budget
   NearbyMarkets: undefined; // Nouvelle page pour localiser les marchés à proximité
+  AIAssistant: undefined; // Nouvelle page pour l'assistant cuisine IA
 
   ShoppingListDetail: { listId: string };
   // Signature d'index pour permettre d'autres écrans ou des paramètres plus complexes.

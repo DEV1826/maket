@@ -20,6 +20,7 @@ import MealPlannerScreen from './screens/MealPlannerScreen'; // Importez le nouv
 import BudgetManagementScreen from './screens/BudgetManagementScreen'; // Importez le nouveau fichier
 import PlatDetailScreen from './screens/PlatDetailScreen'; // Importez le nouveau fichier
 import NearbyMarketsScreen from './screens/NearbyMarketsScreen'; // Écran pour les marchés à proximité
+import AIAssistantScreen from './screens/AIAssistantScreen'; // Nouvel écran d'assistant IA
 // Importez vos autres écrans Foyer, Stock, ShoppingListGenerator si vous les avez
 
 // Importez le type de navigation que vous avez défini globalement
@@ -65,6 +66,7 @@ const AppNavigator: React.FC = () => {
       <Stack.Screen name="MealPlanner" component={MealPlannerScreen} options={{ title: 'Planificateur de Repas' }} />
       <Stack.Screen name="BudgetManagement" component={BudgetManagementScreen} options={{ title: 'Gestion du Budget' }} />
       <Stack.Screen name="NearbyMarkets" component={NearbyMarketsScreen} options={{ title: 'Marchés à Proximité', headerShown: false }} />
+      <Stack.Screen name="AIAssistant" component={AIAssistantScreen} options={{ title: 'Assistant Cuisine IA', headerShown: false }} />
        {/* ... */}
 
       

@@ -92,6 +92,12 @@ const HomeScreen: React.FC = () => {
           <Text style={styles.cardTitle}>Marchés Proches</Text>
           <Text style={styles.cardDescription}>Localiser les marchés à proximité</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('AIAssistant')}>
+          <Icon name="restaurant-outline" size={40} color="#4285F4" />
+          <Text style={styles.cardTitle}>Assistant IA</Text>
+          <Text style={styles.cardDescription}>Recettes et conseils intelligents</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );

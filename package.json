@@ -10,6 +10,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@react-native-community/datetimepicker": "^8.4.1",
     "@react-native-community/masked-view": "^0.1.11",
     "@react-native-firebase/app": "^22.2.0",
