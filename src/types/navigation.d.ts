@@ -8,7 +8,7 @@ export type RootStackParamList = {
   Auth: undefined; // L'écran d'authentification n'a pas de paramètres
   Main: undefined; // Si 'Main' est un écran qui ne prend pas de params ou un conteneur de tab/drawer
   PlatsList: undefined; // L'écran de liste des plats n'a pas de paramètres
-  AddPlat: { platId?: string }; // AddPlat peut prendre un ID pour la modification
+  AddPlat: { platId?: string, imageUrl?: string }; // AddPlat peut prendre un ID et une URL d'image pour la modification
   PlatDetail: { platId: string }; // PlatDetail nécessite un ID de plat
   Moi: undefined;
   Historique: undefined;

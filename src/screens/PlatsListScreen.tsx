@@ -205,7 +205,7 @@ const PlatsListScreen: React.FC = () => {
       
       // Parse the response into an array of dishes
       const dishes = text.split('\n')
-        .map(dish => dish.trim())
+        .map(dish => dish.trim().replace(/^\*\s*|\*$/g, '')) // Remove asterisks from beginning or end
         .filter(dish => dish !== '');
       
       setLocationDishes(dishes.slice(0, 5)); // Limit to 5 dishes

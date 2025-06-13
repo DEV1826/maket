@@ -10,6 +10,7 @@ import {
   Dimensions,
   ActivityIndicator,
   StatusBar,
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -28,6 +29,9 @@ interface WeeklyMeal {
   day: string;
   name: string;
   image?: any;
+  imageUrl?: string;
+  imageUri?: string; // For local image support
+  platId?: string; // Reference to the original dish
 }
 
 interface InventoryItem {
@@ -200,6 +204,156 @@ const HomeScreen: React.FC = () => {
     fetchInventory();
   }, []);
 
+  // Function to save the meal plan to Firestore
+  const saveMealPlanToFirestore = async (userId: string, mealPlan: WeeklyMeal[]) => {
+    try {
+      console.log('Saving meal plan to Firestore, sample meal:', {
+        name: mealPlan[0]?.name,
+        imageUrl: mealPlan[0]?.imageUrl
+      });
+      
+      // First delete any existing meal plans
+      const mealsSnapshot = await firestore()
+        .collection('users')
+        .doc(userId)
+        .collection('weeklyMeals')
+        .get();
+      
+      const batch = firestore().batch();
+      
+      // Delete existing meal plans
+      mealsSnapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      
+      // Add new meal plans
+      mealPlan.forEach(meal => {
+        // Ensure we're only saving serializable data
+        const mealData = {
+          id: meal.id,
+          day: meal.day,
+          name: meal.name,
+          imageUrl: meal.imageUrl,
+          platId: meal.platId
+        };
+        
+        console.log('Saving meal to Firestore:', {
+          name: mealData.name,
+          imageUrl: mealData.imageUrl
+        });
+        
+        const mealRef = firestore()
+          .collection('users')
+          .doc(userId)
+          .collection('weeklyMeals')
+          .doc(); // Auto-generate ID
+          
+        batch.set(mealRef, mealData);
+      });
+      
+      await batch.commit();
+      console.log('Meal plan saved to Firestore');
+    } catch (error) {
+      console.error('Error saving meal plan to Firestore:', error);
+    }
+  };
+  
+  // Function to generate a weekly meal plan based on user's dishes
+  const generateWeeklyMealPlan = (userPlats: any[]) => {
+    // Get the current date to determine the day of the week
+    const today = new Date();
+    const currentDayIndex = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    
+    // Define the days of the week starting from today
+    const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const orderedDays = [];
+    
+    // Reorder days to start from today
+    for (let i = 0; i < 7; i++) {
+      const dayIndex = (currentDayIndex + i) % 7;
+      orderedDays.push(daysOfWeek[dayIndex]);
+    }
+    
+    // Filter out dishes without images first, if possible
+    let dishesWithImages = userPlats.filter(plat => plat.imageUrl);
+    
+    // If we don't have at least 3 dishes with images, use all dishes
+    if (dishesWithImages.length < 3) {
+      dishesWithImages = userPlats;
+    }
+    
+    // Shuffle the dishes to randomize the meal plan
+    const shuffledPlats = [...dishesWithImages].sort(() => Math.random() - 0.5);
+    
+    // If we have fewer than 7 dishes, we'll need to repeat some
+    const mealPlan: WeeklyMeal[] = [];
+    
+    for (let i = 0; i < 7; i++) {
+      // Use modulo to cycle through available dishes if we have fewer than 7
+      const platIndex = i % shuffledPlats.length;
+      const plat = shuffledPlats[platIndex];
+      
+      // Use imageUrl if available, otherwise use imageUri if available
+      mealPlan.push({
+        id: `meal-${i + 1}`,
+        day: orderedDays[i],
+        name: plat.nom,
+        imageUrl: plat.imageUrl ?? null,
+        imageUri: plat.imageUri ?? null,
+        platId: plat.id // Store the reference to the original dish
+      });
+    }
+    
+    console.log('Generated meal plan with images:', mealPlan.map(m => ({ name: m.name, imageUrl: m.imageUrl })));
+    return mealPlan;
+  };
+  
+  // Function to regenerate the meal plan
+  const regenerateMealPlan = async () => {
+    setLoading(true);
+    try {
+      const userId = auth().currentUser?.uid;
+      if (!userId) {
+        Alert.alert('Erreur', 'Utilisateur non connecté.');
+        setLoading(false);
+        return;
+      }
+      
+      const platsSnapshot = await firestore()
+        .collection('users')
+        .doc(userId)
+        .collection('plats')
+        .get();
+
+      if (!platsSnapshot.empty) {
+        const userPlats = platsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        
+        if (userPlats.length >= 3) {
+          // Generate a new meal plan
+          const generatedMealPlan = generateWeeklyMealPlan(userPlats);
+          setWeeklyMeals(generatedMealPlan);
+          
+          // Save the new meal plan to Firestore
+          await saveMealPlanToFirestore(userId, generatedMealPlan);
+          
+          Alert.alert('Succès', 'Nouveau plan de repas généré avec succès!');
+        } else {
+          Alert.alert('Information', 'Vous avez besoin d\'au moins 3 plats pour générer un plan de repas personnalisé.');
+        }
+      } else {
+        Alert.alert('Information', 'Aucun plat trouvé. Ajoutez des plats pour générer un plan de repas personnalisé.');
+      }
+    } catch (error) {
+      console.error('Error regenerating meal plan:', error);
+      Alert.alert('Erreur', 'Impossible de générer un nouveau plan de repas.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const fetchWeeklyMeals = async () => {
       try {
@@ -210,8 +364,9 @@ const HomeScreen: React.FC = () => {
           return; // Keep using default meals
         }
 
-        // Try to fetch from Firestore
+        // Try to fetch user's dishes from Firestore
         try {
+          // First check if we have a saved meal plan
           const mealsSnapshot = await firestore()
             .collection('users')
             .doc(userId)
@@ -219,15 +374,66 @@ const HomeScreen: React.FC = () => {
             .get();
 
           if (!mealsSnapshot.empty) {
-            const meals = mealsSnapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data(),
-            })) as WeeklyMeal[];
+            const meals = mealsSnapshot.docs.map(doc => {
+              const data = doc.data();
+              console.log('Retrieved meal from Firestore:', {
+                id: doc.id,
+                name: data.name,
+                imageUrl: data.imageUrl
+              });
+              return {
+                id: doc.id,
+                ...data,
+              };
+            }) as WeeklyMeal[];
             
-            if (meals.length > 0) setWeeklyMeals(meals);
+            if (meals.length > 0) {
+              console.log('Using saved meal plan, first meal:', {
+                name: meals[0].name,
+                imageUrl: meals[0].imageUrl
+              });
+              setWeeklyMeals(meals);
+              return;
+            }
           }
+          
+          // If no saved meal plan, generate a new one
+          const platsSnapshot = await firestore()
+            .collection('users')
+            .doc(userId)
+            .collection('plats')
+            .get();
+
+          if (!platsSnapshot.empty) {
+            const userPlats = platsSnapshot.docs.map(doc => {
+              const data = doc.data();
+              console.log('Retrieved plat from Firestore:', {
+                id: doc.id,
+                name: data.nom,
+                imageUrl: data.imageUrl
+              });
+              return {
+                id: doc.id,
+                ...data,
+              };
+            });
+            
+            // Only proceed with meal planning if we have at least 3 dishes
+            if (userPlats.length >= 3) {
+              // Generate a weekly meal plan using the user's dishes
+              const generatedMealPlan = generateWeeklyMealPlan(userPlats);
+              setWeeklyMeals(generatedMealPlan);
+              
+              // Save the generated meal plan to Firestore
+              await saveMealPlanToFirestore(userId, generatedMealPlan);
+              return;
+            }
+          }
+          
+          // If we reach here, use default meals
+          console.log('Not enough dishes for meal planning, using default meals');
         } catch (firestoreError) {
-          console.log('Firestore access denied, using default weekly meals');
+          console.log('Firestore access denied, using default weekly meals', firestoreError);
           // Keep using default meals, no need to throw error
         }
       } catch (error) {
@@ -279,15 +485,50 @@ const HomeScreen: React.FC = () => {
         </View>
         <View style={styles.curvedDivider} />
         <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>This Week's Meals</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>This Week's Meals</Text>
+            <TouchableOpacity 
+              style={styles.regenerateButton}
+              onPress={regenerateMealPlan}
+            >
+              <Icon name="refresh-outline" size={16} color="#fff" />
+              <Text style={styles.regenerateButtonText}>Régénérer</Text>
+            </TouchableOpacity>
+          </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mealsContainer}>
             {weeklyMeals.map((meal) => (
               <TouchableOpacity
                 key={meal.id}
                 style={styles.mealCard}
-                onPress={() => navigation.navigate('PlatsList')}
+                onPress={() => {
+                  // If we have a platId, navigate to PlatDetail, otherwise go to PlatsList
+                  if (meal.platId) {
+                    navigation.navigate('PlatDetail', { platId: meal.platId });
+                  } else {
+                    navigation.navigate('PlatsList');
+                  }
+                }}
               >
-                <Image source={meal.image || require('../../assets/images/slider/carotte_2.jpg')} style={styles.mealImage} resizeMode="cover" />
+                {meal.imageUri || meal.imageUrl ? (
+                  <Image 
+                    source={{ uri: meal.imageUri || meal.imageUrl }} 
+                    style={styles.mealImage} 
+                    resizeMode="cover" 
+                    onLoad={() => console.log('Image loaded successfully:', meal.name)}
+                    onError={(error) => console.log('Image load error for', meal.name, ':', error.nativeEvent.error)}
+                  />
+                ) : meal.image ? (
+                  <Image 
+                    source={meal.image} 
+                    style={styles.mealImage} 
+                    resizeMode="cover" 
+                  />
+                ) : (
+                  <View style={styles.mealImagePlaceholder}>
+                    <Icon name="restaurant-outline" size={40} color="#fff" />
+                    {__DEV__ && <Text style={{color: 'white', fontSize: 8}}>No image</Text>}
+                  </View>
+                )}
                 <View style={styles.mealInfo}>
                   <Text style={styles.mealDay}>{meal.day}</Text>
                   <Text style={styles.mealName}>{meal.name}</Text>
@@ -468,12 +709,32 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 16,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#ffffff', // White title on navy background
     marginBottom: 15,
     letterSpacing: 0.5,
+  },
+  regenerateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ff8c00',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 15,
+  },
+  regenerateButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 5,
   },
   mealsContainer: {
     marginBottom: 10,
@@ -497,6 +758,14 @@ const styles = StyleSheet.create({
     height: 80,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
+  },
+  mealImagePlaceholder: {
+    width: 110,
+    height: 80,
+    borderRadius: 12,
+    backgroundColor: '#3a4f7a',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   mealInfo: {
     padding: 10,

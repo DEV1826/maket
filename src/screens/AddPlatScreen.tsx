@@ -23,7 +23,7 @@ interface Ingredient {
 const AddPlatScreen: React.FC = () => {
   const navigation = useNavigation<AddPlatScreenNavigationProp>();
   const route = useRoute<AddPlatScreenRouteProp>();
-  const { platId } = route.params || {};
+  const { platId, imageUrl: routeImageUrl } = route.params || {};
 
   const [nom, setNom] = useState('');
   const [description, setDescription] = useState('');
@@ -38,6 +38,11 @@ const AddPlatScreen: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
+    // Set image from route params if available (when coming from PlatDetailScreen)
+    if (routeImageUrl) {
+      setImageUri(routeImageUrl);
+    }
+    
     if (platId) {
       setIsEditing(true);
       setLoading(true);
@@ -67,7 +72,10 @@ const AddPlatScreen: React.FC = () => {
             setTempsCuisson(data?.tempsCuisson?.toString() || '');
             setPortions(data?.portions?.toString() || '');
             setCategorie(data?.categorie || '');
-            setImageUri(data?.imageUri || null);
+            // Use imageUrl from Firestore instead of imageUri
+            if (data?.imageUrl && !routeImageUrl) {
+              setImageUri(data.imageUrl);
+            }
           } else {
             Alert.alert('Erreur', 'Plat non trouvé.');
             navigation.goBack();
@@ -138,8 +146,7 @@ const AddPlatScreen: React.FC = () => {
     setLoading(true);
     const userId = auth().currentUser?.uid;
 
-    // CORRECTED LINE BELOW:
-    if (userId === null || userId === undefined) { // Check explicitly for null or undefined
+    if (userId === null || userId === undefined) {
       Alert.alert('Erreur', 'Vous devez être connecté pour enregistrer un plat.');
       setLoading(false);
       return;
@@ -150,22 +157,47 @@ const AddPlatScreen: React.FC = () => {
       return;
     }
 
-    const platData = {
-      nom: nom.trim(),
-      description: description.trim(),
-      ingredients: ingredients.filter(ing => ing.nom.trim()),
-      etapes: etapes.filter(etape => etape.trim()),
-      tempsPreparation: parseInt(tempsPreparation) || 0,
-      tempsCuisson: parseInt(tempsCuisson) || 0,
-      portions: parseInt(portions) || 1,
-      categorie: categorie.trim(),
-      imageUri: imageUri, // Store just the local image URI
-      updatedAt: firestore.FieldValue.serverTimestamp(),
-      createdAt: isEditing ? undefined : (firestore.FieldValue.serverTimestamp() || new Date()),
-      userId: userId,
-    };
-
     try {
+      // Handle image upload if there's a new image
+      let imageUrl = routeImageUrl; // Default to the existing image URL
+      
+      if (imageUri && imageUri !== routeImageUrl) {
+        // If we have a new image that's different from the original one
+        // Upload the new image to Firebase Storage
+        const imageFileName = `plats/${userId}/${Date.now()}.jpg`;
+        const reference = storage().ref(imageFileName);
+        
+        // If we're editing and replacing an existing image, try to delete the old one
+        if (isEditing && routeImageUrl) {
+          try {
+            const oldImageRef = storage().refFromURL(routeImageUrl);
+            await oldImageRef.delete();
+          } catch (deleteError) {
+            console.log('Error deleting old image, continuing anyway:', deleteError);
+            // Continue with upload even if delete fails
+          }
+        }
+        
+        // Upload the new image
+        await reference.putFile(imageUri);
+        imageUrl = await reference.getDownloadURL();
+      }
+
+      const platData = {
+        nom: nom.trim(),
+        description: description.trim(),
+        ingredients: ingredients.filter(ing => ing.nom.trim()),
+        etapes: etapes.filter(etape => etape.trim()),
+        tempsPreparation: parseInt(tempsPreparation) || 0,
+        tempsCuisson: parseInt(tempsCuisson) || 0,
+        portions: parseInt(portions) || 1,
+        categorie: categorie.trim(),
+        imageUrl: imageUrl, // Store the Firebase Storage URL
+        updatedAt: firestore.FieldValue.serverTimestamp(),
+        createdAt: isEditing ? undefined : (firestore.FieldValue.serverTimestamp() || new Date()),
+        userId: userId,
+      };
+
       if (isEditing && platId) {
         await firestore().collection('users').doc(userId).collection('plats').doc(platId).update(platData);
         Alert.alert('Succès', 'Plat mis à jour avec succès !');
@@ -257,7 +289,7 @@ const AddPlatScreen: React.FC = () => {
         </View>
       ))}
       <TouchableOpacity style={styles.addButton} onPress={addIngredientField}>
-        <Icon name="add-circle-outline" size={20} color="green" />
+        <Icon name="add-circle-outline" size={20} color="#ff8c00" />
         <Text style={styles.addButtonText}>Ajouter un ingrédient</Text>
       </TouchableOpacity>
 
@@ -281,7 +313,7 @@ const AddPlatScreen: React.FC = () => {
         </View>
       ))}
       <TouchableOpacity style={styles.addButton} onPress={addEtapeField}>
-        <Icon name="add-circle-outline" size={20} color="green" />
+        <Icon name="add-circle-outline" size={20} color="#ff8c00" />
         <Text style={styles.addButtonText}>Ajouter une étape</Text>
       </TouchableOpacity>
 
@@ -346,23 +378,24 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
+    padding: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5fcff',
+    backgroundColor: '#f5f8ff',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 25,
     textAlign: 'center',
-    color: '#2E7D32', // Darker green for better readability
+    color: '#1a2f5a', // Navy blue for better readability
     letterSpacing: 0.5,
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
-    color: '#424242',
+    color: '#1a2f5a', // Navy blue
     marginTop: 15,
   },
   input: {
@@ -384,7 +417,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   imagePickerButton: {
-    backgroundColor: '#43A047',
+    backgroundColor: '#ff8c00', // Yellow/orange color
     padding: 14,
     borderRadius: 10,
     alignItems: 'center',
@@ -431,7 +464,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 30,
     marginBottom: 15,
-    color: '#2E7D32',
+    color: '#1a2f5a', // Navy blue
     paddingBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
@@ -469,16 +502,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#e6ffe6',
+    backgroundColor: '#fff8e6', // Light yellow background
     padding: 10,
     borderRadius: 8,
     marginTop: 5,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: 'green',
+    borderColor: '#ff8c00', // Yellow/orange border
   },
   addButtonText: {
-    color: 'green',
+    color: '#ff8c00', // Yellow/orange text
     fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 5,
@@ -488,7 +521,7 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
   saveButton: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#1a2f5a', // Navy blue
     padding: 18,
     borderRadius: 12,
     alignItems: 'center',
@@ -501,7 +534,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   saveButtonDisabled: {
-    backgroundColor: '#aaddaa',
+    backgroundColor: '#8f9bba', // Lighter navy blue
   },
   saveButtonText: {
     color: 'white',
