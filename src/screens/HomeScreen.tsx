@@ -338,8 +338,6 @@ const HomeScreen: React.FC = () => {
           
           // Save the new meal plan to Firestore
           await saveMealPlanToFirestore(userId, generatedMealPlan);
-          
-          Alert.alert('Succès', 'Nouveau plan de repas généré avec succès!');
         } else {
           Alert.alert('Information', 'Vous avez besoin d\'au moins 3 plats pour générer un plan de repas personnalisé.');
         }
