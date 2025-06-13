@@ -1,187 +1,555 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  FlatList,
+  Dimensions,
+  ActivityIndicator,
+  StatusBar,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/Ionicons';
+import firestore from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
 
 import { RootStackParamList } from '../types/navigation';
 
+const { width } = Dimensions.get('window');
+
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
-const HomeScreen: React.FC = () => {
-  const navigation = useNavigation<HomeScreenNavigationProp>();
+interface WeeklyMeal {
+  id: string;
+  day: string;
+  name: string;
+  image?: any;
+}
 
-  const getFormattedDateTime = () => {
-    const now = new Date();
-    const options: Intl.DateTimeFormatOptions = {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+interface InventoryItem {
+  id: string;
+  nom: string;
+  quantite: number;
+  unite: string;
+  categorie: string;
+  status?: string;
+}
+
+const defaultWeeklyMeals: WeeklyMeal[] = [
+  { id: '1', day: 'Mon', name: 'Chicken Salad', image: require('../../assets/images/slider/crevette_2.jpg') },
+  { id: '2', day: 'Tue', name: 'Pasta', image: require('../../assets/images/slider/carotte_2.jpg') },
+  { id: '3', day: 'Wed', name: 'Steak', image: require('../../assets/images/slider/bœuf_1.jpg') },
+  { id: '4', day: 'Thu', name: 'Fish', image: require('../../assets/images/slider/eau_3.jpg') },
+  { id: '5', day: 'Fri', name: 'Pizza', image: require('../../assets/images/slider/crevette_2.jpg') },
+  { id: '6', day: 'Sat', name: 'Risotto', image: require('../../assets/images/slider/carotte_2.jpg') },
+  { id: '7', day: 'Sun', name: 'Roast', image: require('../../assets/images/slider/bœuf_1.jpg') },
+];
+
+const HomeScreen: React.FC = () => {
+  // Set status bar color to match app theme
+  useEffect(() => {
+    StatusBar.setBackgroundColor('#1a2d5a');
+    StatusBar.setBarStyle('light-content');
+  }, []);
+  const navigation = useNavigation<HomeScreenNavigationProp>();
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [weeklyMeals, setWeeklyMeals] = useState<WeeklyMeal[]>(defaultWeeklyMeals);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const slideRef = useRef<FlatList>(null);
+  const [sliderImages, setSliderImages] = useState<any[]>([
+    require('../../assets/images/intrance.png'),
+    require('../../assets/images/slider/bœuf_1.jpg'),
+    require('../../assets/images/slider/carotte_2.jpg'),
+    require('../../assets/images/slider/crevette_2.jpg'),
+    require('../../assets/images/slider/eau_3.jpg'),
+  ]);
+
+  useEffect(() => {
+    const slideTimer = setInterval(() => {
+      const nextIndex = (currentSlideIndex + 1) % sliderImages.length;
+      setCurrentSlideIndex(nextIndex);
+      slideRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+    }, 19000); // Changed to 19 seconds
+
+    return () => clearInterval(slideTimer);
+  }, [currentSlideIndex]);
+
+  useEffect(() => {
+    const fetchInventory = async () => {
+      try {
+        // Check if user is authenticated
+        const userId = auth().currentUser?.uid;
+        if (!userId) {
+          console.log('User not authenticated, using default inventory (empty)');
+          setLoading(false);
+          return;
+        }
+
+        // Try to fetch from Firestore
+        try {
+          const inventorySnapshot = await firestore()
+            .collection('users')
+            .doc(userId)
+            .collection('inventory')
+            .get();
+
+          if (!inventorySnapshot.empty) {
+            const items = inventorySnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+            })) as InventoryItem[];
+            
+            const itemsWithStatus = items.map(item => {
+              let status = '';
+              if (item.quantite <= 1) status = 'Running low on ' + item.nom.toLowerCase();
+              else status = 'Plenty of ' + item.nom.toLowerCase();
+              return { ...item, status };
+            });
+            
+            setInventoryItems(itemsWithStatus);
+          }
+        } catch (firestoreError) {
+          console.log('Firestore access denied for inventory, using default (empty)');
+          // Just continue with empty inventory
+        }
+      } catch (error) {
+        console.error('Error in inventory logic:', error);
+      } finally {
+        setLoading(false);
+      }
     };
-    return now.toLocaleDateString('fr-FR', options);
-  };
+
+    fetchInventory();
+  }, []);
+
+  useEffect(() => {
+    const fetchWeeklyMeals = async () => {
+      try {
+        // Check if user is authenticated
+        const userId = auth().currentUser?.uid;
+        if (!userId) {
+          console.log('User not authenticated, using default weekly meals');
+          return; // Keep using default meals
+        }
+
+        // Try to fetch from Firestore
+        try {
+          const mealsSnapshot = await firestore()
+            .collection('users')
+            .doc(userId)
+            .collection('weeklyMeals')
+            .get();
+
+          if (!mealsSnapshot.empty) {
+            const meals = mealsSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+            })) as WeeklyMeal[];
+            
+            if (meals.length > 0) setWeeklyMeals(meals);
+          }
+        } catch (firestoreError) {
+          console.log('Firestore access denied, using default weekly meals');
+          // Keep using default meals, no need to throw error
+        }
+      } catch (error) {
+        console.error('Error in weekly meals logic:', error);
+        // Fallback to default meals
+      }
+    };
+
+    fetchWeeklyMeals();
+  }, []);
+
+  const renderSlideItem = ({ item }: { item: any }) => (
+    <View style={styles.slideItem}>
+      <Image source={item} style={styles.slideImage} resizeMode="cover" />
+    </View>
+  );
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <View style={styles.header}>
-        <Text style={styles.appName}>Ma Cuisine</Text>
-        <View style={styles.dateContainer}>
-          <Icon name="calendar-outline" size={18} color="#666" style={styles.dateIcon} />
-          <Text style={styles.currentDate}>{getFormattedDateTime()}</Text>
+    <View style={styles.container}>
+      <StatusBar backgroundColor="#1a2d5a" barStyle="light-content" />
+      <ScrollView contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+        <View style={styles.minimalHeader}>
+          <Text style={styles.minimalAppName}>MBOA</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Moi')}>
+            <Icon name="settings-outline" size={24} color="#fff" />
+          </TouchableOpacity>
         </View>
+        <View style={styles.sliderContainer}>
+          <FlatList
+            ref={slideRef}
+            data={sliderImages}
+            renderItem={renderSlideItem}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(event) => {
+              const slideIndex = Math.floor(event.nativeEvent.contentOffset.x / width);
+              setCurrentSlideIndex(slideIndex);
+            }}
+          />
+          <View style={styles.paginationContainer}>
+            {sliderImages.map((_, index) => (
+              <View
+                key={index}
+                style={[styles.paginationDot, index === currentSlideIndex ? styles.paginationDotActive : null]}
+              />
+            ))}
+          </View>
+        </View>
+        <View style={styles.curvedDivider} />
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>This Week's Meals</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mealsContainer}>
+            {weeklyMeals.map((meal) => (
+              <TouchableOpacity
+                key={meal.id}
+                style={styles.mealCard}
+                onPress={() => navigation.navigate('PlatsList')}
+              >
+                <Image source={meal.image || require('../../assets/images/slider/carotte_2.jpg')} style={styles.mealImage} resizeMode="cover" />
+                <View style={styles.mealInfo}>
+                  <Text style={styles.mealDay}>{meal.day}</Text>
+                  <Text style={styles.mealName}>{meal.name}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Inventory Snapshot</Text>
+          {inventoryItems.length === 0 ? (
+            <View style={styles.emptyInventory}>
+              <Icon name="cart-outline" size={24} color="#f57c00" />
+              <Text style={styles.emptyText}>No ingredients found</Text>
+            </View>
+          ) : (
+            <View style={styles.inventoryList}>
+              {inventoryItems.slice(0, 2).map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.inventoryItem}
+                  onPress={() => navigation.navigate('Stock')}
+                >
+                  <View style={styles.inventoryIconContainer}>
+                    <Icon
+                      name={item.categorie === 'Fruits' ? 'nutrition-outline' : 'restaurant-outline'}
+                      size={24}
+                      color="#fff"
+                    />
+                  </View>
+                  <View style={styles.inventoryInfo}>
+                    <Text style={styles.inventoryCategory}>{item.categorie}</Text>
+                    <Text style={styles.inventoryStatus}>{item.status}</Text>
+                  </View>
+                  <Icon name="alert-circle-outline" size={24} color="#f57c00" />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+        <View style={styles.quickActionsContainer}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.actionButtonsContainer}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('ShoppingLists')}>
+              <Icon name="cart-outline" size={18} color="#f57c00" style={{marginRight: 8}} />
+              <Text style={styles.actionButtonText}>Add to Shopping List</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Stock')}>
+              <Icon name="scan-outline" size={18} color="#f57c00" style={{marginRight: 8}} />
+              <Text style={styles.actionButtonText}>Scan Item</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('PlatsList')}>
+              <Icon name="restaurant-outline" size={18} color="#f57c00" style={{marginRight: 8}} />
+              <Text style={styles.actionButtonText}>Start Cooking</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('AIAssistant')}>
+              <Icon name="bulb-outline" size={18} color="#f57c00" style={{marginRight: 8}} />
+              <Text style={styles.actionButtonText}>AI Suggestions</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+      <View style={styles.bottomNavBar}>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
+          <Icon name="home" size={24} color="#fff" />
+          <Text style={styles.navText}>Home</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('MealPlanner')}>
+          <Icon name="calendar" size={24} color="#fff" />
+          <Text style={styles.navText}>Recipes</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Stock')}>
+          <Icon name="cube" size={24} color="#fff" />
+          <Text style={styles.navText}>Inventory</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('ShoppingLists')}>
+          <Icon name="cart" size={24} color="#fff" />
+          <Text style={styles.navText}>Shopping</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AIAssistant')}>
+          <Icon name="star" size={24} color="#fff" />
+          <Text style={styles.navText}>Assistant</Text>
+        </TouchableOpacity>
       </View>
-
-      <Text style={styles.sectionTitle}>Gérer mes repas</Text>
-
-      <View style={styles.grid}>
-        {/* NOUVEAUX BOUTONS */}
-        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('MealPlanner')}>
-          <Icon name="restaurant-outline" size={40} color="#FFD700" />
-          <Text style={styles.cardTitle}>Planifier les Repas</Text>
-          <Text style={styles.cardDescription}>Organiser mes menus hebdomadaires</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('BudgetManagement')}>
-          <Icon name="wallet-outline" size={40} color="#20B2AA" />
-          <Text style={styles.cardTitle}>Gestion du Budget</Text>
-          <Text style={styles.cardDescription}>Suivre mes dépenses alimentaires</Text>
-        </TouchableOpacity>
-        {/* FIN DES NOUVEAUX BOUTONS */}
-
-        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('PlatsList')}>
-          <Icon name="fast-food-outline" size={40} color="green" />
-          <Text style={styles.cardTitle}>Mes Plats</Text>
-          <Text style={styles.cardDescription}>Voir et ajouter mes recettes</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Foyer')}>
-          <Icon name="home-outline" size={40} color="#007AFF" />
-          <Text style={styles.cardTitle}>Mon Foyer</Text>
-          <Text style={styles.cardDescription}>Gérer les membres et préférences</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Stock')}>
-          <Icon name="cube-outline" size={40} color="#FF9500" />
-          <Text style={styles.cardTitle}>Mon Stock</Text>
-          <Text style={styles.cardDescription}>Suivre les ingrédients disponibles</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('ShoppingLists')}>
-          <Icon name="cart-outline" size={40} color="#AF52DE" />
-          <Text style={styles.cardTitle}>Mes Listes de Courses</Text>
-          <Text style={styles.cardDescription}>Accéder à mes listes et les gérer</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Historique')}>
-          <Icon name="timer-outline" size={40} color="#5856D6" />
-          <Text style={styles.cardTitle}>Historique des repas</Text>
-          <Text style={styles.cardDescription}>Voir ce que j'ai cuisiné</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Moi')}>
-          <Icon name="person-outline" size={40} color="#BF5620" />
-          <Text style={styles.cardTitle}>Moi</Text>
-          <Text style={styles.cardDescription}>Mes préférences, mon profil</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('NearbyMarkets')}>
-          <Icon name="location-outline" size={40} color="#E74C3C" />
-          <Text style={styles.cardTitle}>Marchés Proches</Text>
-          <Text style={styles.cardDescription}>Localiser les marchés à proximité</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('AIAssistant')}>
-          <Icon name="restaurant-outline" size={40} color="#4285F4" />
-          <Text style={styles.cardTitle}>Assistant IA</Text>
-          <Text style={styles.cardDescription}>Recettes et conseils intelligents</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5fcff',
+    backgroundColor: '#1a2d5a',
   },
   contentContainer: {
-    paddingTop: 20,
-    paddingHorizontal: 15,
-    paddingBottom: 40,
+    paddingBottom: 70,
   },
-  header: {
-    marginBottom: 30,
-    alignItems: 'center',
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  appName: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: 'green',
-    letterSpacing: 1,
-    marginBottom: 10,
-  },
-  dateContainer: {
+
+  minimalHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#e0ffe0',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 5,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
-  dateIcon: {
-    marginRight: 5,
-  },
-  currentDate: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-  },
-  sectionTitle: {
+  minimalAppName: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 20,
+    color: '#fff',
+    letterSpacing: 1,
+  },
+  sliderContainer: {
+    height: 350, // Increased height to take about half the screen
+    width: '100%',
+    marginBottom: 10,
+    position: 'relative',
+    backgroundColor: '#1a2d5a',
+  },
+  slideItem: {
+    width: width,
+    height: 350, // Match the container height
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  slideImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 0,
+    opacity: 0.9,
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    bottom: 20,
+    width: '100%',
+  },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    marginHorizontal: 4,
+  },
+  paginationDotActive: {
+    backgroundColor: '#fff',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  curvedDivider: {
+    display: 'none', // Hide the curved divider
+  },
+  sectionContainer: {
+    marginTop: 20,
+    paddingHorizontal: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff', // White title on navy background
+    marginBottom: 15,
+    letterSpacing: 0.5,
+  },
+  mealsContainer: {
+    marginBottom: 10,
+  },
+  mealCard: {
+    width: 110,
+    marginRight: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(26, 45, 90, 0.7)', // Consistent navy blue background
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  mealImage: {
+    width: 110,
+    height: 80,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  mealInfo: {
+    padding: 10,
+  },
+  mealDay: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#f57c00', // Orange day for contrast
+  },
+  mealName: {
+    fontSize: 12,
+    color: '#ffffff',
     textAlign: 'center',
   },
-  grid: {
+  inventoryList: {
+    marginTop: 10,
+  },
+  inventoryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(26, 45, 90, 0.7)', // Consistent navy blue background
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+    borderLeftWidth: 3,
+    borderLeftColor: '#f57c00', // Orange border for contrast
+  },
+  inventoryIconContainer: {
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    backgroundColor: '#f57c00',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  inventoryInfo: {
+    flex: 1,
+  },
+  inventoryCategory: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#ffffff', // White text for contrast
+  },
+  inventoryStatus: {
+    fontSize: 12,
+    color: '#f57c00', // Keep orange for status text for contrast
+  },
+  emptyInventory: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(26, 45, 90, 0.7)', // Consistent navy blue background
+    borderRadius: 12,
+    padding: 30,
+    marginTop: 10,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderStyle: 'dashed',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  emptyText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#ffffff',
+    textAlign: 'center',
+    opacity: 0.8,
+  },
+  quickActionsContainer: {
+    marginTop: 20,
+    paddingHorizontal: 16,
+    marginBottom: 30,
+    backgroundColor: 'transparent',
+  },
+  actionButtonsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
-  card: {
+  actionButton: {
     width: '48%',
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 15,
+    backgroundColor: 'rgba(26, 45, 90, 0.7)', // Consistent navy blue background
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 10,
     alignItems: 'center',
-    justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#ffffff',
+    textAlign: 'center',
+  },
+  bottomNavBar: {
+    flexDirection: 'row',
+    backgroundColor: '#132240',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    height: 65,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 8,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
     elevation: 5,
-    minHeight: 150,
   },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 10,
-    marginBottom: 5,
-    color: '#333',
-    textAlign: 'center',
+  navItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cardDescription: {
+  navText: {
     fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
+    marginTop: 4,
+    color: '#fff', // White text
+    fontWeight: '500',
   },
 });
 
