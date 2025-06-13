@@ -37,6 +37,8 @@ interface InventoryItem {
   unite: string;
   categorie: string;
   status?: string;
+  datePeremption?: any; // Firestore Timestamp
+  priority?: number; // For sorting items by urgency
 }
 
 const defaultWeeklyMeals: WeeklyMeal[] = [
@@ -92,28 +94,99 @@ const HomeScreen: React.FC = () => {
 
         // Try to fetch from Firestore
         try {
-          const inventorySnapshot = await firestore()
+          // First try to get from stock collection (preferred)
+          const stockSnapshot = await firestore()
             .collection('users')
             .doc(userId)
-            .collection('inventory')
+            .collection('stock')
             .get();
 
-          if (!inventorySnapshot.empty) {
-            const items = inventorySnapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data(),
-            })) as InventoryItem[];
-            
-            const itemsWithStatus = items.map(item => {
+          if (!stockSnapshot.empty) {
+            const now = new Date();
+            const items = stockSnapshot.docs.map(doc => {
+              const data = doc.data();
+              // Calculate priority based on expiry date and quantity
+              let priority = 0;
+              
+              // Check expiry date - higher priority for items expiring soon
+              if (data.datePeremption) {
+                const expiryDate = data.datePeremption.toDate();
+                const daysToExpiry = Math.max(0, Math.floor((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+                
+                if (daysToExpiry <= 3) priority += 100; // Expiring in 3 days or less
+                else if (daysToExpiry <= 7) priority += 50; // Expiring in a week
+                else if (daysToExpiry <= 14) priority += 25; // Expiring in two weeks
+              }
+              
+              // Check quantity - higher priority for low quantity items
+              const quantity = parseFloat(data.quantite) || 0;
+              if (quantity <= 1) priority += 75; // Very low quantity
+              else if (quantity <= 3) priority += 40; // Low quantity
+              
+              // Generate status message
               let status = '';
-              if (item.quantite <= 1) status = 'Running low on ' + item.nom.toLowerCase();
-              else status = 'Plenty of ' + item.nom.toLowerCase();
-              return { ...item, status };
+              if (data.datePeremption) {
+                const expiryDate = data.datePeremption.toDate();
+                const daysToExpiry = Math.max(0, Math.floor((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+                
+                if (daysToExpiry <= 3) {
+                  status = `${data.nom} expires in ${daysToExpiry} day${daysToExpiry !== 1 ? 's' : ''}`;
+                } else if (quantity <= 1) {
+                  status = `Running low on ${data.nom.toLowerCase()}`;
+                } else {
+                  status = `${data.nom} (${quantity} ${data.unite})`;
+                }
+              } else if (quantity <= 1) {
+                status = `Running low on ${data.nom.toLowerCase()}`;
+              } else {
+                status = `${data.nom} (${quantity} ${data.unite})`;
+              }
+              
+              return {
+                id: doc.id,
+                nom: data.nom,
+                quantite: parseFloat(data.quantite) || 0,
+                unite: data.unite,
+                categorie: data.categorie || 'General',
+                datePeremption: data.datePeremption,
+                status,
+                priority
+              };
             });
             
-            setInventoryItems(itemsWithStatus);
+            // Sort by priority (highest first)
+            items.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+            setInventoryItems(items);
+          } else {
+            // Fallback to inventory collection if stock is empty
+            const inventorySnapshot = await firestore()
+              .collection('users')
+              .doc(userId)
+              .collection('inventory')
+              .get();
+
+            if (!inventorySnapshot.empty) {
+              const items = inventorySnapshot.docs.map(doc => {
+                const data = doc.data();
+                let status = '';
+                if (data.quantite <= 1) status = 'Running low on ' + data.nom.toLowerCase();
+                else status = 'Plenty of ' + data.nom.toLowerCase();
+                
+                return {
+                  id: doc.id,
+                  ...data,
+                  status,
+                  priority: data.quantite <= 1 ? 75 : 0
+                };
+              }) as InventoryItem[];
+              
+              // Sort by priority (highest first)
+              items.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+              setInventoryItems(items);
+            }
           }
         } catch (firestoreError) {
+          console.error('Firestore access error:', firestoreError);
           console.log('Firestore access denied for inventory, using default (empty)');
           // Just continue with empty inventory
         }
@@ -225,33 +298,50 @@ const HomeScreen: React.FC = () => {
         </View>
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Inventory Snapshot</Text>
-          {inventoryItems.length === 0 ? (
-            <View style={styles.emptyInventory}>
-              <Icon name="cart-outline" size={24} color="#f57c00" />
-              <Text style={styles.emptyText}>No ingredients found</Text>
-            </View>
-          ) : (
+          {loading ? (
+            <ActivityIndicator size="large" color="#f57c00" />
+          ) : inventoryItems.length > 0 ? (
             <View style={styles.inventoryList}>
+              {/* Show only the top 2 priority items */}
               {inventoryItems.slice(0, 2).map((item) => (
                 <TouchableOpacity
                   key={item.id}
-                  style={styles.inventoryItem}
+                  style={[styles.inventoryItem, item.priority && item.priority > 50 ? styles.highPriorityItem : null]}
                   onPress={() => navigation.navigate('Stock')}
                 >
                   <View style={styles.inventoryIconContainer}>
-                    <Icon
-                      name={item.categorie === 'Fruits' ? 'nutrition-outline' : 'restaurant-outline'}
-                      size={24}
-                      color="#fff"
-                    />
+                    {item.datePeremption && item.priority && item.priority >= 100 ? (
+                      <Icon name="alert-circle" size={22} color="#fff" />
+                    ) : item.quantite <= 1 ? (
+                      <Icon name="remove-circle" size={22} color="#fff" />
+                    ) : (
+                      <Icon name="nutrition-outline" size={22} color="#fff" />
+                    )}
                   </View>
                   <View style={styles.inventoryInfo}>
-                    <Text style={styles.inventoryCategory}>{item.categorie}</Text>
+                    <Text style={styles.inventoryCategory}>{item.nom}</Text>
                     <Text style={styles.inventoryStatus}>{item.status}</Text>
                   </View>
-                  <Icon name="alert-circle-outline" size={24} color="#f57c00" />
                 </TouchableOpacity>
               ))}
+              <TouchableOpacity
+                style={[styles.actionButton, { width: '100%', marginTop: 10 }]}
+                onPress={() => navigation.navigate('Stock')}
+              >
+                <Icon name="list" size={20} color="#f57c00" style={{ marginRight: 8 }} />
+                <Text style={styles.actionButtonText}>View All Inventory</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.emptyInventory}>
+              <Icon name="basket-outline" size={40} color="#f57c00" />
+              <Text style={styles.emptyText}>Your inventory is empty</Text>
+              <TouchableOpacity
+                style={[styles.actionButton, { marginTop: 15, backgroundColor: '#f57c00' }]}
+                onPress={() => navigation.navigate('Stock')}
+              >
+                <Text style={[styles.actionButtonText, { color: '#fff' }]}>Add Items</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -438,6 +528,10 @@ const styles = StyleSheet.create({
     elevation: 2,
     borderLeftWidth: 3,
     borderLeftColor: '#f57c00', // Orange border for contrast
+  },
+  highPriorityItem: {
+    borderLeftColor: '#ff3d00', // Bright orange-red for high priority items
+    backgroundColor: 'rgba(26, 45, 90, 0.85)', // Slightly darker background
   },
   inventoryIconContainer: {
     width: 45,
