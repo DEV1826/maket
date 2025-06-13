@@ -14,7 +14,8 @@ import {
   SafeAreaView,
   TextInput,
   Modal,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
+  ScrollView
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -59,6 +60,11 @@ const PlatsListScreen: React.FC = () => {
   const [locationDishes, setLocationDishes] = useState<string[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedDish, setSelectedDish] = useState<string>('');
+  const [recipeModalVisible, setRecipeModalVisible] = useState(false);
+  const [generatedRecipe, setGeneratedRecipe] = useState<Plat | null>(null);
+  const [generatingRecipe, setGeneratingRecipe] = useState(false);
+  const [savingRecipe, setSavingRecipe] = useState(false);
 
   const fetchPlats = async () => {
     const userId = auth().currentUser?.uid;
@@ -212,6 +218,100 @@ const PlatsListScreen: React.FC = () => {
     }
   };
   
+  // Function to generate a recipe for a selected dish
+  const generateRecipe = async (dishName: string) => {
+    setSelectedDish(dishName);
+    setGeneratingRecipe(true);
+    setRecipeModalVisible(true);
+    
+    try {
+      const prompt = `Generate a detailed recipe for ${dishName}, a traditional dish from ${searchLocation}. Format the response as a JSON object with the following structure exactly:
+      {
+        "nom": "${dishName}",
+        "description": "Brief description of the dish",
+        "ingredients": [
+          {"quantite": "amount", "unite": "unit", "nom": "ingredient name"},
+          ...
+        ],
+        "etapes": ["Step 1 description", "Step 2 description", ...],
+        "tempsPreparation": preparation time in minutes (number),
+        "tempsCuisson": cooking time in minutes (number),
+        "portions": number of servings (number),
+        "categorie": "appropriate category"
+      }
+      Ensure all values are in French and the JSON is properly formatted.`;
+      
+      const result = await model.generateContent(prompt);
+      const response = result.response;
+      const text = response.text();
+      
+      try {
+        // Extract JSON from the response
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        const jsonString = jsonMatch ? jsonMatch[0] : text;
+        const recipeData = JSON.parse(jsonString);
+        
+        // Ensure the recipe has all required fields
+        const recipe: Plat = {
+          id: '', // Will be assigned when saved to Firestore
+          nom: recipeData.nom || dishName,
+          description: recipeData.description || '',
+          ingredients: recipeData.ingredients || [],
+          etapes: recipeData.etapes || [],
+          tempsPreparation: recipeData.tempsPreparation || 0,
+          tempsCuisson: recipeData.tempsCuisson || 0,
+          portions: recipeData.portions || 2,
+          categorie: recipeData.categorie || '',
+        };
+        
+        setGeneratedRecipe(recipe);
+      } catch (parseError) {
+        console.error('Error parsing recipe JSON:', parseError);
+        Alert.alert('Erreur', 'Impossible de générer la recette. Format incorrect.');
+        setRecipeModalVisible(false);
+      }
+    } catch (error) {
+      console.error('Error generating recipe:', error);
+      Alert.alert('Erreur', 'Impossible de générer la recette. Veuillez réessayer.');
+      setRecipeModalVisible(false);
+    } finally {
+      setGeneratingRecipe(false);
+    }
+  };
+  
+  // Function to save the generated recipe to Firestore
+  const saveRecipe = async () => {
+    if (!generatedRecipe) return;
+    
+    const userId = auth().currentUser?.uid;
+    if (!userId) {
+      Alert.alert('Erreur', 'Vous devez être connecté pour enregistrer un plat.');
+      return;
+    }
+    
+    setSavingRecipe(true);
+    try {
+      const platData = {
+        ...generatedRecipe,
+        createdAt: firestore.FieldValue.serverTimestamp(),
+        userId: userId
+      };
+      
+      // Remove the id field as Firestore will generate one
+      const { id, ...dataWithoutId } = platData;
+      
+      await firestore().collection('users').doc(userId).collection('plats').add(dataWithoutId);
+      Alert.alert('Succès', 'Plat ajouté avec succès !');
+      setRecipeModalVisible(false);
+      fetchPlats(); // Refresh the list of plates
+    } catch (error) {
+      console.error('Error saving recipe:', error);
+      Alert.alert('Erreur', 'Impossible d\'enregistrer le plat. Veuillez réessayer.');
+    } finally {
+      setSavingRecipe(false);
+    }
+  };
+  
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#1a2f5a" barStyle="light-content" />
@@ -261,10 +361,14 @@ const PlatsListScreen: React.FC = () => {
                     data={locationDishes}
                     keyExtractor={(item, index) => `dish-${index}`}
                     renderItem={({ item }) => (
-                      <View style={styles.dishItem}>
+                      <TouchableOpacity 
+                        style={styles.dishItem}
+                        onPress={() => generateRecipe(item)}
+                      >
                         <Icon name="restaurant-outline" size={24} color="#ff8c00" />
                         <Text style={styles.dishName}>{item}</Text>
-                      </View>
+                        <Icon name="chevron-forward" size={20} color="#8b9dc3" style={styles.dishArrow} />
+                      </TouchableOpacity>
                     )}
                   />
                 ) : (
@@ -274,6 +378,98 @@ const PlatsListScreen: React.FC = () => {
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
+      </Modal>
+      
+      {/* Modal for displaying recipe details */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={recipeModalVisible}
+        onRequestClose={() => !generatingRecipe && setRecipeModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.recipeModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{selectedDish}</Text>
+              <TouchableOpacity 
+                onPress={() => !generatingRecipe && setRecipeModalVisible(false)}
+                disabled={generatingRecipe}
+              >
+                <Icon name="close" size={24} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.recipeScrollView}>
+              {generatingRecipe ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#ff8c00" />
+                  <Text style={styles.secondaryLoadingText}>Génération de la recette...</Text>
+                </View>
+              ) : generatedRecipe ? (
+                <View style={styles.recipeContainer}>
+                  <Text style={styles.recipeDescription}>{generatedRecipe.description}</Text>
+                  
+                  <Text style={styles.recipeSectionTitle}>Informations</Text>
+                  <View style={styles.recipeInfoContainer}>
+                    <View style={styles.recipeInfoItem}>
+                      <Icon name="time-outline" size={20} color="#ff8c00" />
+                      <Text style={styles.recipeInfoText}>Préparation: {generatedRecipe.tempsPreparation} min</Text>
+                    </View>
+                    <View style={styles.recipeInfoItem}>
+                      <Icon name="flame-outline" size={20} color="#ff8c00" />
+                      <Text style={styles.recipeInfoText}>Cuisson: {generatedRecipe.tempsCuisson} min</Text>
+                    </View>
+                    <View style={styles.recipeInfoItem}>
+                      <Icon name="people-outline" size={20} color="#ff8c00" />
+                      <Text style={styles.recipeInfoText}>Portions: {generatedRecipe.portions}</Text>
+                    </View>
+                    {generatedRecipe.categorie && (
+                      <View style={styles.recipeInfoItem}>
+                        <Icon name="list-outline" size={20} color="#ff8c00" />
+                        <Text style={styles.recipeInfoText}>Catégorie: {generatedRecipe.categorie}</Text>
+                      </View>
+                    )}
+                  </View>
+                  
+                  <Text style={styles.recipeSectionTitle}>Ingrédients</Text>
+                  {generatedRecipe.ingredients && generatedRecipe.ingredients.map((ingredient, index) => (
+                    <View key={`ingredient-${index}`} style={styles.ingredientItem}>
+                      <Icon name="ellipse" size={8} color="#ff8c00" style={styles.bulletPoint} />
+                      <Text style={styles.ingredientText}>
+                        {ingredient.quantite} {ingredient.unite} {ingredient.nom}
+                      </Text>
+                    </View>
+                  ))}
+                  
+                  <Text style={styles.recipeSectionTitle}>Étapes</Text>
+                  {generatedRecipe.etapes && generatedRecipe.etapes.map((etape, index) => (
+                    <View key={`etape-${index}`} style={styles.etapeItem}>
+                      <Text style={styles.etapeNumber}>{index + 1}</Text>
+                      <Text style={styles.etapeText}>{etape}</Text>
+                    </View>
+                  ))}
+                  
+                  <TouchableOpacity 
+                    style={styles.saveButton}
+                    onPress={saveRecipe}
+                    disabled={savingRecipe}
+                  >
+                    {savingRecipe ? (
+                      <ActivityIndicator size="small" color="#ffffff" />
+                    ) : (
+                      <>
+                        <Icon name="add-circle-outline" size={20} color="#ffffff" />
+                        <Text style={styles.saveButtonText}>Ajouter à mes plats</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <Text style={styles.noDishesText}>Erreur lors de la génération de la recette.</Text>
+              )}
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
 
       {plats.length === 0 ? (
@@ -394,6 +590,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#ffffff',
     marginLeft: 12,
+    flex: 1,
+  },
+  dishArrow: {
+    marginLeft: 8,
   },
   noDishesText: {
     padding: 16,
@@ -401,12 +601,110 @@ const styles = StyleSheet.create({
     color: '#8b9dc3',
     textAlign: 'center',
   },
+  recipeModalContent: {
+    width: '90%',
+    backgroundColor: '#1a2f5a',
+    borderRadius: 16,
+    overflow: 'hidden',
+    maxHeight: '80%',
+  },
+  recipeScrollView: {
+    maxHeight: '80%',
+  },
+  recipeContainer: {
+    padding: 16,
+  },
+  recipeDescription: {
+    fontSize: 16,
+    color: '#ffffff',
+    marginBottom: 16,
+    lineHeight: 22,
+  },
+  recipeSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ff8c00',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  recipeInfoContainer: {
+    backgroundColor: '#2c4372',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  recipeInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  recipeInfoText: {
+    color: '#ffffff',
+    marginLeft: 8,
+    fontSize: 14,
+  },
+  ingredientItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingLeft: 8,
+  },
+  bulletPoint: {
+    marginRight: 8,
+  },
+  ingredientText: {
+    color: '#ffffff',
+    fontSize: 14,
+  },
+  etapeItem: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    paddingLeft: 8,
+  },
+  etapeNumber: {
+    backgroundColor: '#ff8c00',
+    color: '#ffffff',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginRight: 12,
+    fontWeight: 'bold',
+  },
+  etapeText: {
+    color: '#ffffff',
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  saveButton: {
+    backgroundColor: '#ff8c00',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 25,
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  saveButtonText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  loadingText: {
+    color: '#ffffff',
+    marginTop: 16,
+    fontSize: 16,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
+  secondaryLoadingText: {
     marginTop: 12,
     fontSize: 16,
     color: '#ffffff',
