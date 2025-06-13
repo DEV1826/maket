@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#1a2d5a',
     marginBottom: 10,
   },
   sectionDescription: {
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#1a2d5a',
   },
   featureDescription: {
     fontSize: 14,
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: '#4CAF50',
+    color: '#f57c00',
     marginLeft: 5,
   },
   input: {
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
   },
   generateButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#f57c00',
     borderRadius: 10,
     padding: 15,
     alignItems: 'center',
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   saveButton: {
-    backgroundColor: '#4285F4',
+    backgroundColor: '#1a2d5a',
     borderRadius: 10,
     padding: 12,
     alignItems: 'center',
@@ -511,17 +511,17 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   stockItem: {
-    backgroundColor: '#e8f5e9',
+    backgroundColor: 'rgba(245, 124, 0, 0.1)',
     borderRadius: 20,
     paddingVertical: 6,
     paddingHorizontal: 12,
     margin: 4,
     borderWidth: 1,
-    borderColor: '#c8e6c9',
+    borderColor: 'rgba(245, 124, 0, 0.3)',
   },
   stockItemText: {
     fontSize: 14,
-    color: '#2e7d32',
+    color: '#f57c00',
   },
   additionalIngredientsLabel: {
     fontSize: 16,
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
   },
   noStockMessage: {
     fontSize: 16,
-    color: '#e57373',
+    color: '#f57c00',
     fontStyle: 'italic',
     marginVertical: 10,
     textAlign: 'center',
@@ -539,17 +539,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f1f8e9',
+    backgroundColor: 'rgba(26, 45, 90, 0.1)',
     borderRadius: 8,
     padding: 8,
     marginTop: 5,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#c8e6c9',
+    borderColor: 'rgba(26, 45, 90, 0.3)',
   },
   refreshButtonText: {
     fontSize: 14,
-    color: '#4CAF50',
+    color: '#1a2d5a',
     marginLeft: 5,
   },
 });

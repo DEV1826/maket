@@ -241,19 +241,19 @@ const NearbyMarketsScreen: React.FC = () => {
                 style={styles.marketItem}
                 onPress={() => handleOpenMap(market)}
               >
-                <Icon name="location-sharp" size={24} color="#4CAF50" />
+                <Icon name="location-sharp" size={24} color="#f57c00" />
                 <View style={styles.marketItemTextContainer}>
                   <Text style={styles.marketItemName}>{market.name}</Text>
                   {market.vicinity && <Text style={styles.marketItemVicinity}>{market.vicinity}</Text>}
                   {market.distance !== undefined && <Text style={styles.marketItemDistance}>{market.distance} km</Text>}
                 </View>
-                <Icon name="chevron-forward" size={24} color="#757575" />
+                <Icon name="chevron-forward" size={24} color="#f57c00" />
               </TouchableOpacity>
             ))
           ) : (
             !loading && <Text style={styles.noMarketsText}>{error || 'Aucun marché trouvé.'}</Text>
           )}
-          {loading && markets.length > 0 && <ActivityIndicator size="small" color="#4CAF50" style={{marginTop: 10}}/>}
+          {loading && markets.length > 0 && <ActivityIndicator size="small" color="#f57c00" style={{marginTop: 10}}/>}
         </ScrollView>
       </View>
     </View>
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#4CAF50',
+    color: '#f57c00',
   },
   errorContainer: {
     flex: 1,
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#f57c00',
     paddingVertical: 12,
     paddingHorizontal: 30,
     borderRadius: 25,
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   backButtonText: {
-    color: '#4285F4',
+    color: '#1a2d5a',
     fontSize: 16,
   },
   map: {
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 15,
-    color: '#333',
+    color: '#1a2d5a',
   },
   marketItem: {
     flexDirection: 'row',
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
   marketItemName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#1a2d5a',
   },
   marketItemVicinity: {
     fontSize: 13,
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
   },
   marketItemDistance: {
     fontSize: 13,
-    color: '#757575',
+    color: '#f57c00',
     marginTop: 2,
   },
   noMarketsText: {

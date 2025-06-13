@@ -37,7 +37,7 @@ const AppNavigator: React.FC = () => {
       <Stack.Screen name="Splash" component={SplashScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Moi" component={MoiScreen} options={{ title: 'Mon Profil' }} />
+      <Stack.Screen name="Moi" component={MoiScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Historique" component={HistoriqueScreen} options={{ title: 'Historique des Repas' }} />
       <Stack.Screen name="PlatsList" component={PlatsListScreen} options={{ title: 'Mes Plats' }} />
       <Stack.Screen name="ShoppingListGenerator" component={ShoppingListGeneratorScreen} options={{ title: 'Générateur de Liste' }} />
