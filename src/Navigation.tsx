@@ -7,6 +7,7 @@ import ShoppingListDetailScreen from './screens/ShoppingListDetailScreen';
 
 
 // Importez vos écrans
+import SplashScreen from './screens/SplashScreen'; // Nouvel écran de démarrage
 import AuthScreen from './screens/AuthScreen';
 import HomeScreen from './screens/HomeScreen';
 import MoiScreen from './screens/Moi'; // Renommé de 'Moi' à 'MoiScreen' pour la convention
@@ -32,7 +33,8 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 // Exemple de Stack Navigator
 const AppNavigator: React.FC = () => {
   return (
-    <Stack.Navigator initialRouteName="Auth">
+    <Stack.Navigator initialRouteName="Splash">
+      <Stack.Screen name="Splash" component={SplashScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Moi" component={MoiScreen} options={{ title: 'Mon Profil' }} />

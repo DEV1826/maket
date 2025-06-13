@@ -3,6 +3,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 // Définissez ici les paramètres pour chaque écran de votre Stack Navigator
 export type RootStackParamList = {
+  Splash: undefined; // L'écran de démarrage n'a pas de paramètres
   Home: undefined; // L'écran Home n'a pas de paramètres
   Auth: undefined; // L'écran d'authentification n'a pas de paramètres
   Main: undefined; // Si 'Main' est un écran qui ne prend pas de params ou un conteneur de tab/drawer

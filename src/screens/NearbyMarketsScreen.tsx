@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Linking, PermissionsAndroid, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Linking, PermissionsAndroid, Platform, ScrollView } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import GetLocation from 'react-native-get-location';
 import { useNavigation } from '@react-navigation/native';
@@ -229,26 +229,32 @@ const NearbyMarketsScreen: React.FC = () => {
 
       <View style={styles.marketListContainer}>
         <Text style={styles.marketListTitle}>Marchés à proximité ({markets.length})</Text>
-        {markets.length > 0 ? (
-          markets.map((market) => (
-            <TouchableOpacity
-              key={market.place_id}
-              style={styles.marketItem}
-              onPress={() => handleOpenMap(market)}
-            >
-              <Icon name="location-sharp" size={24} color="#4CAF50" />
-              <View style={styles.marketItemTextContainer}>
-                <Text style={styles.marketItemName}>{market.name}</Text>
-                {market.vicinity && <Text style={styles.marketItemVicinity}>{market.vicinity}</Text>}
-                {market.distance !== undefined && <Text style={styles.marketItemDistance}>{market.distance} km</Text>}
-              </View>
-              <Icon name="chevron-forward" size={24} color="#757575" />
-            </TouchableOpacity>
-          ))
-        ) : (
-          !loading && <Text style={styles.noMarketsText}>{error || 'Aucun marché trouvé.'}</Text>
-        )}
-        {loading && markets.length > 0 && <ActivityIndicator size="small" color="#4CAF50" style={{marginTop: 10}}/>}
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={true}
+          contentContainerStyle={styles.scrollViewContent}
+        >
+          {markets.length > 0 ? (
+            markets.map((market) => (
+              <TouchableOpacity
+                key={market.place_id}
+                style={styles.marketItem}
+                onPress={() => handleOpenMap(market)}
+              >
+                <Icon name="location-sharp" size={24} color="#4CAF50" />
+                <View style={styles.marketItemTextContainer}>
+                  <Text style={styles.marketItemName}>{market.name}</Text>
+                  {market.vicinity && <Text style={styles.marketItemVicinity}>{market.vicinity}</Text>}
+                  {market.distance !== undefined && <Text style={styles.marketItemDistance}>{market.distance} km</Text>}
+                </View>
+                <Icon name="chevron-forward" size={24} color="#757575" />
+              </TouchableOpacity>
+            ))
+          ) : (
+            !loading && <Text style={styles.noMarketsText}>{error || 'Aucun marché trouvé.'}</Text>
+          )}
+          {loading && markets.length > 0 && <ActivityIndicator size="small" color="#4CAF50" style={{marginTop: 10}}/>}
+        </ScrollView>
       </View>
     </View>
   );
@@ -329,11 +335,19 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
+    paddingBottom: 0, // Remove bottom padding since ScrollView will handle it
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 8,
+  },
+  scrollView: {
+    flex: 1,
+    marginTop: 5,
+  },
+  scrollViewContent: {
+    paddingBottom: 20, // Add padding at the bottom of the scroll content
   },
   marketListTitle: {
     fontSize: 20,
