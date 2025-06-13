@@ -8,208 +8,351 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  ScrollView,
+  Modal,
+  Image,
 } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import Icon from 'react-native-vector-icons/Ionicons';
+import RadioForm, { RadioButton, RadioButtonInput, RadioButtonLabel } from 'react-native-simple-radio-button';
 
 interface MembreFoyer {
   id: string;
   nom: string;
-  preferences?: string; // Ex: végétarien, allergies, etc.
+  age?: number;
+  preferences?: string;
+  sexe?: string;
+  position?: string;
 }
 
 const FoyerScreen: React.FC = () => {
   const [membres, setMembres] = useState<MembreFoyer[]>([]);
-  const [nouveauMembreNom, setNouveauMembreNom] = useState('');
-  const [nouveauMembrePrefs, setNouveauMembrePrefs] = useState('');
+  const [nom, setNom] = useState('');
+  const [age, setAge] = useState('');
+  const [preferences, setPreferences] = useState('');
+  const [sexe, setSexe] = useState<string | undefined>(undefined);
+  const [position, setPosition] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
-  const [addingMembre, setAddingMembre] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<MembreFoyer | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const sexeOptions = [
+    { label: 'Homme', value: 'Homme' },
+    { label: 'Femme', value: 'Femme' },
+  ];
+
+  const positionOptions = [
+    { label: 'Père', value: 'Père' },
+    { label: 'Mère', value: 'Mère' },
+    { label: 'Enfant', value: 'Enfant' },
+    { label: 'Cousin', value: 'Cousin' },
+    { label: 'Autre', value: 'Autre' },
+  ];
 
   useEffect(() => {
     const userId = auth().currentUser?.uid;
     if (!userId) {
-      Alert.alert('Erreur', 'Utilisateur non connecté.');
+      Alert.alert('Erreur', 'Non connecté.');
       setLoading(false);
       return;
     }
 
-    // Abonnement aux changements en temps réel de la sous-collection 'foyer_membres'
     const subscriber = firestore()
       .collection('users')
       .doc(userId)
       .collection('foyer_membres')
-      .orderBy('nom', 'asc') // Tri par nom
+      .orderBy('nom', 'asc')
       .onSnapshot(
         querySnapshot => {
-          const loadedMembres: MembreFoyer[] = [];
-          querySnapshot.forEach(documentSnapshot => {
-            loadedMembres.push({
-              id: documentSnapshot.id,
-              ...documentSnapshot.data(),
-            } as MembreFoyer);
-          });
-          setMembres(loadedMembres);
+          const loaded: MembreFoyer[] = [];
+          querySnapshot.forEach(doc => loaded.push({ id: doc.id, ...doc.data() } as MembreFoyer));
+          setMembres(loaded);
           setLoading(false);
         },
-        error => {
-          console.error("Erreur d'abonnement aux membres du foyer:", error);
-          Alert.alert(
-            'Erreur',
-            'Problème de connexion aux données de votre foyer.'
-          );
+        () => {
+          Alert.alert('Erreur', 'Problème de connexion.');
           setLoading(false);
         }
       );
 
-    // Arrête l'abonnement lorsque le composant est démonté
     return () => subscriber();
   }, []);
 
-  const handleAddMembre = async () => {
+  const handleAddOrUpdate = async () => {
     const userId = auth().currentUser?.uid;
-    if (!userId) {
-      Alert.alert('Erreur', 'Utilisateur non connecté.');
-      return;
-    }
-    if (!nouveauMembreNom.trim()) {
-      Alert.alert('Erreur', 'Le nom du membre ne peut pas être vide.');
+    if (!userId || !nom.trim()) {
+      Alert.alert('Erreur', nom.trim() ? 'Non connecté.' : 'Nom requis.');
       return;
     }
 
-    setAddingMembre(true);
+    setAdding(true);
     try {
-      await firestore()
-        .collection('users')
-        .doc(userId)
-        .collection('foyer_membres')
-        .add({
-          nom: nouveauMembreNom.trim(),
-          preferences: nouveauMembrePrefs.trim(),
-          createdAt: firestore.FieldValue.serverTimestamp(),
-        });
-      setNouveauMembreNom('');
-      setNouveauMembrePrefs('');
-      Alert.alert('Succès', 'Membre ajouté avec succès !');
-    } catch (error) {
-      console.error('Erreur lors de l\'ajout du membre:', error);
-      Alert.alert('Erreur', 'Impossible d\'ajouter le membre. Veuillez réessayer.');
+      const data: Partial<MembreFoyer> = {
+        nom: nom.trim(),
+        age: age ? parseInt(age, 10) : undefined,
+        preferences: preferences.trim() || undefined,
+        sexe: sexe || undefined,
+        position: position || undefined,
+      };
+
+      if (editing) {
+        await firestore()
+          .collection('users')
+          .doc(userId)
+          .collection('foyer_membres')
+          .doc(editing.id)
+          .update(data);
+        Alert.alert('Succès', 'Membre modifié !');
+      } else {
+        await firestore()
+          .collection('users')
+          .doc(userId)
+          .collection('foyer_membres')
+          .add(data);
+        Alert.alert('Succès', 'Membre ajouté !');
+      }
+
+      reset();
+    } catch (error: any) {
+      Alert.alert('Erreur', `Échec: ${error.message}`);
     } finally {
-      setAddingMembre(false);
+      setAdding(false);
     }
   };
 
-  const handleDeleteMembre = (membreId: string, membreNom: string) => {
+  const reset = () => {
+    setNom('');
+    setAge('');
+    setPreferences('');
+    setSexe(undefined);
+    setPosition(undefined);
+    setEditing(null);
+    setModalVisible(false);
+  };
+
+  const handleEdit = (membre: MembreFoyer) => {
+    setEditing(membre);
+    setNom(membre.nom);
+    setAge(membre.age ? membre.age.toString() : '');
+    setPreferences(membre.preferences || '');
+    setSexe(membre.sexe || undefined);
+    setPosition(membre.position || undefined);
+    setModalVisible(true);
+  };
+
+  const handleDelete = (id: string, nom: string) => {
     Alert.alert(
-      'Supprimer un membre',
-      `Voulez-vous vraiment supprimer ${membreNom} de votre foyer ?`,
+      'Confirmer',
+      `Supprimer ${nom} ?`,
       [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Supprimer',
-          onPress: async () => {
-            const userId = auth().currentUser?.uid;
-            if (!userId) {
-              Alert.alert('Erreur', 'Utilisateur non connecté.');
-              return;
-            }
-            try {
-              await firestore()
-                .collection('users')
-                .doc(userId)
-                .collection('foyer_membres')
-                .doc(membreId)
-                .delete();
-              Alert.alert('Succès', `${membreNom} a été supprimé.`);
-            } catch (error) {
-              console.error('Erreur lors de la suppression du membre:', error);
-              Alert.alert('Erreur', 'Impossible de supprimer le membre.');
-            }
-          },
-          style: 'destructive',
-        },
+        { text: 'Non', style: 'cancel' },
+        { text: 'Oui', style: 'destructive', onPress: () => {
+          const userId = auth().currentUser?.uid;
+          if (!userId) {
+            Alert.alert('Erreur', 'Non connecté.');
+            return;
+          }
+          try {
+            firestore()
+              .collection('users')
+              .doc(userId)
+              .collection('foyer_membres')
+              .doc(id)
+              .delete();
+            if (editing?.id === id) reset();
+            Alert.alert('Succès', `${nom} supprimé.`);
+          } catch (error: any) {
+            Alert.alert('Erreur', 'Échec de suppression.');
+          }
+        }},
       ]
     );
   };
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="green" />
-        <Text>Chargement des membres du foyer...</Text>
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color="#fff" />
+        <Text style={styles.loadingText}>Chargement...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Mon Foyer</Text>
-
-      <View style={styles.inputContainer}>
-        <View style={styles.inputWithHelp}>
-          <TextInput
-            style={styles.input}
-            placeholder="Nom du membre"
-            value={nouveauMembreNom}
-            onChangeText={setNouveauMembreNom}
-          />
-          <Text style={styles.helpText}>Exemple: Papa, Maman, Enfant 1</Text>
-        </View>
-        <View style={styles.inputWithHelp}>
-          <TextInput
-            style={styles.input}
-            placeholder="Préférences"
-            value={nouveauMembrePrefs}
-            onChangeText={setNouveauMembrePrefs}
-          />
-          <Text style={styles.helpText}>Exemple: Végétarien, Allergie aux noix, Diabétique</Text>
-        </View>
-        <TouchableOpacity
-          style={[styles.addButton, addingMembre && styles.addButtonDisabled]}
-          onPress={handleAddMembre}
-          disabled={addingMembre}
-        >
-          {addingMembre ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <>
-              <Icon name="person-add-outline" size={20} color="white" />
-              <Text style={styles.addButtonText}>Ajouter un membre</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {membres.length === 0 ? (
-        <View style={styles.emptyListContainer}>
-          <Icon name="people-outline" size={60} color="#ccc" />
-          <Text style={styles.emptyListText}>Aucun membre dans votre foyer.</Text>
-          <Text style={styles.emptyListText}>Ajoutez-en un ci-dessus !</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={membres}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.membreCard}>
-              <View style={styles.membreInfo}>
-                <Icon name="person-circle-outline" size={24} color="green" />
-                <Text style={styles.membreName}>{item.nom}</Text>
-              </View>
-              {item.preferences && (
-                <Text style={styles.membrePreferences}>Prefs: {item.preferences}</Text>
-              )}
-              <TouchableOpacity
-                onPress={() => handleDeleteMembre(item.id, item.nom)}
-                style={styles.deleteButton}
-              >
-                <Icon name="trash-outline" size={20} color="#dc3545" />
-              </TouchableOpacity>
-            </View>
-          )}
-          contentContainerStyle={styles.listContent}
+      <Svg height="100%" width="100%" style={StyleSheet.absoluteFillObject}>
+        <Path
+          d="M20 50 Q 100 20, 200 50 T 380 50 T 560 50"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="2"
         />
-      )}
+        <Path
+          d="M20 550 Q 100 580, 200 550 T 380 550 T 560 550"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="2"
+        />
+      </Svg>
+      <Image source={require('../../assets/images/logo.png')} style={styles.logo} />
+      <Text style={styles.title}>Mon foyer</Text>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        {membres.length === 0 ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>Aucun membre.</Text>
+            <Text style={styles.emptyText}>Ajoutez via le bouton !</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={membres}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.card}>
+                <View style={styles.memberInfo}>
+                  <View style={styles.iconCircle}>
+                    <Icon name="person" size={30} color="#fff" />
+                  </View>
+                  <View style={styles.memberDetails}>
+                    <Text style={styles.memberName}>{item.nom}</Text>
+                    {item.sexe && <Text style={styles.infoText}>Sexe: {item.sexe}</Text>}
+                    {item.position && <Text style={styles.infoText}>Position: {item.position}</Text>}
+                    {item.preferences && (
+                      <Text style={styles.preferences}>Préférences : {item.preferences}</Text>
+                    )}
+                  </View>
+                </View>
+                <View style={styles.actions}>
+                  <TouchableOpacity onPress={() => handleEdit(item)} style={styles.editButton}>
+                    <Icon name="create-outline" size={20} color="#fff" />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleDelete(item.id, item.nom)} style={styles.deleteButton}>
+                    <Icon name="trash-outline" size={20} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+            contentContainerStyle={styles.list}
+          />
+        )}
+      </ScrollView>
+      <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
+        <Icon name="add" size={30} color="#fff" />
+      </TouchableOpacity>
+      <Modal visible={modalVisible} animationType="slide" transparent={true} onRequestClose={reset}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <ScrollView contentContainerStyle={styles.modalScroll}>
+              <Text style={styles.modalTitle}>{editing ? 'Modifier' : 'Ajouter'} un membre</Text>
+              <View style={styles.inputGroup}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nom (ex. Jean)"
+                  placeholderTextColor="#666"
+                  value={nom}
+                  onChangeText={setNom}
+                />
+              </View>
+              <View style={styles.inputGroup}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Âge (ex. 35)"
+                  placeholderTextColor="#666"
+                  value={age}
+                  onChangeText={setAge}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.inputGroup}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Préférences (ex. arachides)"
+                  placeholderTextColor="#666"
+                  value={preferences}
+                  onChangeText={setPreferences}
+                />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Sexe :</Text>
+                <RadioForm formHorizontal={false} animation={true}>
+                  {sexeOptions.map((obj, i) => (
+                    <RadioButton labelHorizontal={true} key={i}>
+                      <RadioButtonInput
+                        obj={obj}
+                        index={i}
+                        isSelected={sexe === obj.value}
+                        onPress={(value) => setSexe(value)}
+                        borderWidth={1}
+                        buttonInnerColor={'#ff6200'}
+                        buttonOuterColor={sexe === obj.value ? '#ff6200' : '#000'}
+                        buttonSize={10}
+                        buttonOuterSize={20}
+                        buttonStyle={{}}
+                      />
+                      <RadioButtonLabel
+                        obj={obj}
+                        index={i}
+                        labelHorizontal={true}
+                        onPress={(value) => setSexe(value)}
+                        labelStyle={{ fontSize: 16, color: '#333' }}
+                        labelWrapStyle={{}}
+                      />
+                    </RadioButton>
+                  ))}
+                </RadioForm>
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Position :</Text>
+                <RadioForm formHorizontal={false} animation={true}>
+                  {positionOptions.map((obj, i) => (
+                    <RadioButton labelHorizontal={true} key={i}>
+                      <RadioButtonInput
+                        obj={obj}
+                        index={i}
+                        isSelected={position === obj.value}
+                        onPress={(value) => setPosition(value)}
+                        borderWidth={1}
+                        buttonInnerColor={'#ff6200'}
+                        buttonOuterColor={position === obj.value ? '#ff6200' : '#000'}
+                        buttonSize={10}
+                        buttonOuterSize={20}
+                        buttonStyle={{}}
+                      />
+                      <RadioButtonLabel
+                        obj={obj}
+                        index={i}
+                        labelHorizontal={true}
+                        onPress={(value) => setPosition(value)}
+                        labelStyle={{ fontSize: 16, color: '#333' }}
+                        labelWrapStyle={{}}
+                      />
+                    </RadioButton>
+                  ))}
+                </RadioForm>
+              </View>
+              <TouchableOpacity
+                style={[styles.button, adding && styles.buttonDisabled]}
+                onPress={handleAddOrUpdate}
+                disabled={adding}
+              >
+                {adding ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Icon name="person-add-outline" size={20} color="#fff" />
+                    <Text style={styles.buttonText}>{editing ? 'Modifier' : 'Ajouter'}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.cancelButton} onPress={reset}>
+                <Text style={styles.cancelText}>Annuler</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -217,119 +360,118 @@ const FoyerScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5fcff',
-    padding: 20,
+    backgroundColor: '#000',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5fcff',
+  logo: {
+    width: 100,
+    height: 100,
+    alignSelf: 'center',
+    marginTop: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: 'green',
-    marginBottom: 20,
+    color: '#fff',
     textAlign: 'center',
+    marginVertical: 10,
   },
-  inputContainer: {
-    marginBottom: 20,
-    padding: 15,
-    backgroundColor: 'white',
-    borderRadius: 10,
+  scroll: { padding: 16, paddingBottom: 80 },
+  loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
+  loadingText: { color: '#fff', marginTop: 10 },
+  empty: { justifyContent: 'center', alignItems: 'center', padding: 32 },
+  emptyText: { color: '#fff', fontSize: 16, textAlign: 'center', marginTop: 8 },
+  list: { paddingBottom: 80 },
+  card: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    marginVertical: 6,
+    elevation: 3,
+  },
+  memberInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  iconCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#ff6200',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  memberDetails: { flex: 1 },
+  memberName: { fontSize: 16, fontWeight: '600', color: '#000' },
+  infoText: { fontSize: 14, color: '#666', marginTop: 2 },
+  preferences: { fontSize: 14, color: '#666', marginTop: 2 },
+  actions: { flexDirection: 'row', alignItems: 'center' },
+  editButton: {
+    backgroundColor: '#ff6200',
+    padding: 6,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  deleteButton: {
+    backgroundColor: '#ff6200',
+    padding: 6,
+    borderRadius: 4,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    backgroundColor: '#ff6200',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 4,
-    elevation: 5,
   },
+  modalContainer: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 16,
+    maxHeight: '80%',
+  },
+  modalScroll: { paddingBottom: 16 },
+  modalTitle: { fontSize: 20, fontWeight: '600', color: '#333', marginBottom: 16, textAlign: 'center' },
+  inputGroup: { marginBottom: 12 },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
-    padding: 12,
+    padding: 10,
     fontSize: 16,
-    marginBottom: 10,
     backgroundColor: '#fff',
   },
-  addButton: {
-    backgroundColor: 'green',
-    padding: 15,
-    borderRadius: 10,
+  label: { fontSize: 16, color: '#333', marginBottom: 8 },
+  button: {
+    backgroundColor: '#ff6200',
+    padding: 12,
+    borderRadius: 8,
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-  },
-  addButtonDisabled: {
-    backgroundColor: '#aaddaa',
-  },
-  addButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
-  emptyListContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    marginTop: 8,
   },
-  emptyListText: {
-    fontSize: 18,
-    color: '#888',
-    textAlign: 'center',
-    marginTop: 10,
-  },
-  listContent: {
-    paddingBottom: 20,
-  },
-  membreCard: {
-    flexDirection: 'row',
+  buttonDisabled: { backgroundColor: '#ffb386' },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600', marginLeft: 8 },
+  cancelButton: {
+    backgroundColor: '#dc3545',
+    padding: 12,
+    borderRadius: 8,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 15,
-    marginVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
+    marginTop: 8,
   },
-  membreInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  membreName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginLeft: 10,
-  },
-  membrePreferences: {
-    fontSize: 14,
-    color: '#666',
-    flex: 1,
-    textAlign: 'right',
-  },
-  deleteButton: {
-    marginLeft: 15,
-    padding: 5,
-  },
-  inputWithHelp: {
-    marginBottom: 15,
-  },
-  helpText: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 5,
-    marginLeft: 10,
-  },
+  cancelText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });
 
 export default FoyerScreen;
