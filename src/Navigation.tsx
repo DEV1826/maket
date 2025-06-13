@@ -39,7 +39,16 @@ const AppNavigator: React.FC = () => {
       <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Moi" component={MoiScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Historique" component={HistoriqueScreen} options={{ title: 'Historique des Repas' }} />
-      <Stack.Screen name="PlatsList" component={PlatsListScreen} options={{ title: 'Mes Plats' }} />
+      <Stack.Screen name="PlatsList" component={PlatsListScreen} options={{ 
+        title: 'Mes Plats',
+        headerStyle: {
+          backgroundColor: '#1a2f5a', // Navy blue background
+        },
+        headerTintColor: '#ffffff', // White text and back button
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      }} />
       <Stack.Screen name="ShoppingListGenerator" component={ShoppingListGeneratorScreen} options={{ title: 'Générateur de Liste' }} />
       <Stack.Screen name="AddPlat" component={AddPlatScreen} options={({ route }) => ({
         title: route.params?.platId ? 'Modifier le Plat' : 'Ajouter un Plat',

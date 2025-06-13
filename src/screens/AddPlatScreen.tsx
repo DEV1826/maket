@@ -33,7 +33,6 @@ const AddPlatScreen: React.FC = () => {
   const [tempsCuisson, setTempsCuisson] = useState('');
   const [portions, setPortions] = useState('');
   const [categorie, setCategorie] = useState('');
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -68,8 +67,7 @@ const AddPlatScreen: React.FC = () => {
             setTempsCuisson(data?.tempsCuisson?.toString() || '');
             setPortions(data?.portions?.toString() || '');
             setCategorie(data?.categorie || '');
-            setImageUrl(data?.imageUrl || null);
-            setImageUri(data?.imageUrl || null);
+            setImageUri(data?.imageUri || null);
           } else {
             Alert.alert('Erreur', 'Plat non trouvé.');
             navigation.goBack();
@@ -115,10 +113,12 @@ const AddPlatScreen: React.FC = () => {
 
   const pickImage = async () => {
     const options = {
-      mediaType: 'photo' as 'photo', // Explicit casting
+      mediaType: 'photo' as 'photo',
       includeBase64: false,
-      maxHeight: 200,
-      maxWidth: 200,
+      maxHeight: 800,
+      maxWidth: 800,
+      quality: 0.8 as 0.8,
+      saveToPhotos: false,
     };
 
     launchImageLibrary(options, (response: ImagePickerResponse) => {
@@ -128,31 +128,10 @@ const AddPlatScreen: React.FC = () => {
         console.log('Erreur ImagePicker: ', response.errorMessage);
         Alert.alert('Erreur', 'Impossible de choisir l\'image.');
       } else if (response.assets && response.assets.length > 0) {
-        setImageUri(response.assets[0].uri || null);
+        const selectedAsset = response.assets[0];
+        setImageUri(selectedAsset.uri || null);
       }
     });
-  };
-
-  const uploadImage = async (uri: string): Promise<string> => {
-    const userId = auth().currentUser?.uid;
-    // CORRECTED LINE BELOW:
-    if (userId === null || userId === undefined) { // Check explicitly for null or undefined
-      throw new Error("User not authenticated for image upload.");
-    }
-
-    const filename = uri.substring(uri.lastIndexOf('/') + 1);
-    const uploadUri = Platform.OS === 'ios' ? uri.replace('file://', '') : uri;
-    const storageRef = storage().ref(`images/${userId}/${filename}`);
-
-    try {
-      await storageRef.putFile(uploadUri);
-      const url = await storageRef.getDownloadURL();
-      return url;
-    } catch (error) {
-      console.error("Erreur d'upload d'image:", error);
-      Alert.alert('Erreur', 'Impossible de télécharger l\'image.');
-      throw error;
-    }
   };
 
   const handleSavePlat = async () => {
@@ -171,18 +150,6 @@ const AddPlatScreen: React.FC = () => {
       return;
     }
 
-    let finalImageUrl = imageUrl;
-    if (imageUri && imageUri !== imageUrl) {
-      try {
-        finalImageUrl = await uploadImage(imageUri);
-      } catch (uploadError) {
-        setLoading(false);
-        return;
-      }
-    } else if (!imageUri) {
-      finalImageUrl = null;
-    }
-
     const platData = {
       nom: nom.trim(),
       description: description.trim(),
@@ -192,9 +159,9 @@ const AddPlatScreen: React.FC = () => {
       tempsCuisson: parseInt(tempsCuisson) || 0,
       portions: parseInt(portions) || 1,
       categorie: categorie.trim(),
-      imageUrl: finalImageUrl,
-      //  timestamp pour la création et la mise à jour
-      createdAt: isEditing ? firestore.FieldValue.serverTimestamp() : (firestore.FieldValue.serverTimestamp() || new Date()), // Ajouté un fallback pour le type
+      imageUri: imageUri, // Store just the local image URI
+      updatedAt: firestore.FieldValue.serverTimestamp(),
+      createdAt: isEditing ? undefined : (firestore.FieldValue.serverTimestamp() || new Date()),
       userId: userId,
     };
 
@@ -255,7 +222,7 @@ const AddPlatScreen: React.FC = () => {
         </Text>
       </TouchableOpacity>
       {imageUri && (
-        <TouchableOpacity style={styles.removeImageButton} onPress={() => { setImageUri(null); setImageUrl(null); }}>
+        <TouchableOpacity style={styles.removeImageButton} onPress={() => { setImageUri(null); }}>
           <Text style={styles.removeImageButtonText}>Supprimer l'image</Text>
         </TouchableOpacity>
       )}
@@ -371,10 +338,10 @@ const AddPlatScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5fcff',
+    backgroundColor: '#f8f9fa',
   },
   contentContainer: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 40,
   },
   loadingContainer: {
@@ -384,40 +351,51 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5fcff',
   },
   title: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 25,
     textAlign: 'center',
-    color: 'green',
+    color: '#2E7D32', // Darker green for better readability
+    letterSpacing: 0.5,
   },
   label: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
     marginBottom: 8,
-    color: '#333',
+    color: '#424242',
     marginTop: 15,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: '#E0E0E0',
+    borderRadius: 10,
+    padding: 14,
     fontSize: 16,
-    marginBottom: 10,
+    marginBottom: 12,
     backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 1,
   },
   multilineInput: {
     minHeight: 100,
     textAlignVertical: 'top',
   },
   imagePickerButton: {
-    backgroundColor: '#007AFF',
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: '#43A047',
+    padding: 14,
+    borderRadius: 10,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
   },
   imagePickerButtonText: {
     color: 'white',
@@ -427,10 +405,15 @@ const styles = StyleSheet.create({
   },
   previewImage: {
     width: '100%',
-    height: 200,
-    borderRadius: 8,
+    height: 220,
+    borderRadius: 12,
     marginTop: 10,
     resizeMode: 'cover',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
   },
   removeImageButton: {
     backgroundColor: '#dc3545',
@@ -444,11 +427,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
-    marginTop: 25,
+    marginTop: 30,
     marginBottom: 15,
-    color: 'green',
+    color: '#2E7D32',
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
   },
   ingredientRow: {
     flexDirection: 'row',
@@ -502,17 +488,17 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
   saveButton: {
-    backgroundColor: 'green',
+    backgroundColor: '#2E7D32',
     padding: 18,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
     marginTop: 30,
     marginBottom: 30,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
   },
   saveButtonDisabled: {
     backgroundColor: '#aaddaa',
@@ -521,6 +507,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
 });
 
