@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // DEVELOPMENT MODE - Allow all access during development
+    // IMPORTANT: Change this to more restrictive rules before production
+    match /{document=**} {
+      allow read, write: if true;
+    }
+    
+    // The rules below are commented out for development
+    // Uncomment and deploy these rules when ready for production
+    
+    /* 
+    // Allow read access to public collections
+    match /public_plats/{document} {
+      allow read: if true;
+    }
+    
+    match /ingredients/{document} {
+      allow read: if true;
+    }
+    
+    // User-specific data - only authenticated users can access their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // User's stock collection
+      match /stock/{stockId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // User's lists collection
+      match /lists/{listId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // User's plats collection
+      match /plats/{platId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    // Default deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    */
+  }
+}

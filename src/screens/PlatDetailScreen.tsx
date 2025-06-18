@@ -24,7 +24,6 @@ interface Plat {
   nom: string;
   description: string;
   imageUrl?: string;
-  imageUri?: string; // Added for local image URI support
   ingredients?: Ingredient[];
   etapes?: string[];
   tempsPreparation?: number;
@@ -152,12 +151,11 @@ const PlatDetailScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {plat.imageUrl || plat.imageUri ? (
+      {plat.imageUrl ? (
         <Image 
-          source={{ uri: plat.imageUrl || plat.imageUri }} 
+          source={{ uri: plat.imageUrl }} 
           style={styles.platImage}
           resizeMode="cover"
-          onError={(error) => console.log('Image load error:', error.nativeEvent.error)}
         />
       ) : (
         <View style={styles.platImagePlaceholder}>

@@ -15,6 +15,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import FloatingChatButton from '../components/FloatingChatButton';
 
 // Initialize the Google Generative AI with the API key
 const genAI = new GoogleGenerativeAI('AIzaSyCQmAnJ4QLHbqna7LiJsgY32xjW-JzXfaE');
@@ -358,6 +359,7 @@ const AIAssistantScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       {selectedFeature ? renderFeatureInteraction() : renderFeatureSelection()}
+      <FloatingChatButton />
     </View>
   );
 };

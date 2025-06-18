@@ -1,4 +1,5 @@
 import React from 'react';
+import { TouchableOpacity, Text } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'; // Si vous utilisez des onglets
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -15,13 +16,13 @@ import HistoriqueScreen from './screens/Historique'; // Renommé de 'Historique'
 import PlatsListScreen from './screens/PlatsListScreen';
 import AddPlatScreen from './screens/AddPlatScreen';
 import FoyerScreen from './screens/FoyerScreen';
-import ShoppingListGeneratorScreen from './screens/ShoppingListGeneratorScreen';
 import ShoppingListsScreen from './screens/ShoppingListsScreen';
 import MealPlannerScreen from './screens/MealPlannerScreen'; // Importez le nouveau fichier
 import BudgetManagementScreen from './screens/BudgetManagementScreen'; // Importez le nouveau fichier
 import PlatDetailScreen from './screens/PlatDetailScreen'; // Importez le nouveau fichier
 import NearbyMarketsScreen from './screens/NearbyMarketsScreen'; // Écran pour les marchés à proximité
 import AIAssistantScreen from './screens/AIAssistantScreen'; // Nouvel écran d'assistant IA
+import ChatScreen from './screens/ChatScreen'; // AI Chat screen
 // Importez vos autres écrans Foyer, Stock, ShoppingListGenerator si vous les avez
 
 // Importez le type de navigation que vous avez défini globalement
@@ -49,7 +50,7 @@ const AppNavigator: React.FC = () => {
           fontWeight: 'bold',
         },
       }} />
-      <Stack.Screen name="ShoppingListGenerator" component={ShoppingListGeneratorScreen} options={{ title: 'Générateur de Liste' }} />
+
       <Stack.Screen name="AddPlat" component={AddPlatScreen} options={({ route }) => ({
         title: route.params?.platId ? 'Modifier le Plat' : 'Ajouter un Plat',
       })} />
@@ -69,7 +70,36 @@ const AppNavigator: React.FC = () => {
 
       <Stack.Screen name="PlatDetail" component={PlatDetailScreen} options={{ title: 'Détails du Plat' }} />
       {/* Ajoutez vos autres écrans ici */}
-      <Stack.Screen name="ShoppingLists" component={ShoppingListsScreen} options={{ title: 'Mes Listes de Courses' }} />
+      <Stack.Screen name="ShoppingLists" component={ShoppingListsScreen} options={({ navigation }) => ({
+        title: 'Mes Listes de Courses',
+        headerStyle: {
+          backgroundColor: '#1a2d5a',
+        },
+        headerTintColor: '#fff',
+        headerTitleStyle: {
+          fontWeight: '600',
+          color: '#fff',
+        },
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('NearbyMarkets')}
+            style={{
+              backgroundColor: '#f57c00',
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginRight: 8,
+            }}
+          >
+            <Icon name="map-marker" size={18} color="#fff" />
+            <Text style={{ color: '#fff', marginLeft: 4, fontSize: 14, fontWeight: '600' }}>
+              Marchés
+            </Text>
+          </TouchableOpacity>
+        ),
+      })} />
       <Stack.Screen name="ShoppingListDetail" component={ShoppingListDetailScreen} options={({ route }) => ({
         title: route.params?.listId ? 'Liste de Courses' : 'Détail Liste', // Le titre sera mis à jour dynamiquement dans l'écran
       })} />
@@ -78,6 +108,7 @@ const AppNavigator: React.FC = () => {
       <Stack.Screen name="BudgetManagement" component={BudgetManagementScreen} options={{ title: 'Gestion du Budget' }} />
       <Stack.Screen name="NearbyMarkets" component={NearbyMarketsScreen} options={{ title: 'Marchés à Proximité', headerShown: false }} />
       <Stack.Screen name="AIAssistant" component={AIAssistantScreen} options={{ title: 'Assistant Cuisine IA', headerShown: false }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
        {/* ... */}
 
       

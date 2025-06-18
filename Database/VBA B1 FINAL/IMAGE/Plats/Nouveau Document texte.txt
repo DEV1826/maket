@@ -1,0 +1,96 @@
+tenue militaire
+
+4 Boites de maïs 1kg de maïs doux
+800 grammes epinards en feuilles
+300 grammes de maïs en poudre Bio
+100 grammes de sucre optionelle
+1 c. a soupe de sel
+100 grammes de crevettes sechés
+100 ml huile rouge
+2 cubes optionel
+
+bafong
+
+8 maïs frais ou 600 g de maïs sec
+200 g d'arachides
+Sel
+Feuilles de bananiers
+
+
+
+Tac tac
+
+4 boites de maïs doux (330g) pour remplacer le maïs frais
+
+1 paquets de Semoule (500g) pour apporter de la consistance au maïs doux qui seule ne donnera pas un résultat satisfaisant
+
+1 boite de choux frisés (660g) ou encore Grünkohl pour les résidents en Allemagne. Alternative: épinards
+
+Huile de palme ( huile rouge)
+
+Un peu d‘ eau pour le mixage
+
+Sel
+
+Papier sulfurisé ( a la place des feuille du bananier)
+Papier aluminium ( pour empêcher la fuite du maïs dans le cas où le papier sulfurisé arrivait à être déchiré pendant la cuisson)
+
+
+
+ macabo râpés (kouakoukou)
+
+
+
+2 kg de macabos blancs
+2 cuillères à soupe d’huile de palme
+sel
+750 ml d’eau
+Des feuilles de bananier ou/et du film alimentaire
+
+Ingrédients pour la sauce blanche
+
+300 g d’arachides
+- 6 poissons fumés
+- 50 g (1 poignée) de crevettes séchées
+- 2 oignons
+- 5 tomates
+- piment
+- 2 gousses d’ail
+- gingembre
+- sel
+- eau
+- 5 tomates
+-100 ml d’huile de cuisson
+
+
+Function ObtenirMessageGemini(prenom As String, age As Integer, plat As String, estAnniversaire As Boolean) As String
+    Dim prompt As String, apiKey As String, url As String
+    Dim http As Object, jsonBody As String, response As String
+    Dim json As Object, candidates As Object
+
+    prompt = "Génère un message court et affectueux pour un membre de la famille nommé " & prenom & _
+             " qui a " & age & " ans. Le plat du jour est '" & plat & "'."
+    If estAnniversaire Then
+        prompt = prompt & " C'est son anniversaire aujourd'hui."
+    End If
+
+    apiKey = "AIzaSyA8NVaGAhVksKRlPymQrNMeuyoezZTv_5U"
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" & apiKey
+
+    jsonBody = "{""contents"":[{""parts"":[{""text"":""" & prompt & """}]}]}"
+
+    Set http = CreateObject("MSXML2.XMLHTTP")
+    http.Open "POST", url, False
+    http.setRequestHeader "Content-Type", "application/json"
+    http.Send jsonBody
+
+    response = http.responseText
+
+    On Error GoTo ErreurParsing
+    Set json = JsonConverter.ParseJson(response)
+    ObtenirMessageGemini = json("candidates")(1)("content")("parts")(1)("text")
+    Exit Function
+
+ErreurParsing:
+    ObtenirMessageGemini = "Erreur de parsing ou de requête : " & response
+End Function

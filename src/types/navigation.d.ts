@@ -20,8 +20,9 @@ export type RootStackParamList = {
   BudgetManagement: undefined; // Nouvelle page pour la gestion du budget
   NearbyMarkets: undefined; // Nouvelle page pour localiser les marchés à proximité
   AIAssistant: undefined; // Nouvelle page pour l'assistant cuisine IA
+  Chat: undefined; // Chat screen for AI culinary assistant
 
-  ShoppingListDetail: { listId: string };
+  ShoppingListDetail: { date?: string; items?: any[]; listId?: string };
   // Signature d'index pour permettre d'autres écrans ou des paramètres plus complexes.
   // C'est essentiel pour satisfaire la contrainte 'ParamListBase'.
   [key: string]: object | undefined;

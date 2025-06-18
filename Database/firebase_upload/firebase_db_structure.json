@@ -1,0 +1,420 @@
+{
+  "ingredients": {
+    "__documents__": {
+      "0i001": {
+        "imageUrls": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nom": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "autre_nom": {
+          "type": "string"
+        },
+        "origine": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        }
+      },
+      "101219_1": {
+        "imageUrls": {
+          "type": "array",
+          "items": {
+            "type": "unknown"
+          }
+        },
+        "nom": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "autre_nom": {
+          "type": "string"
+        },
+        "origine": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        }
+      },
+      "101219_10": {
+        "imageUrls": {
+          "type": "array",
+          "items": {
+            "type": "unknown"
+          }
+        },
+        "nom": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "autre_nom": {
+          "type": "string"
+        },
+        "origine": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        }
+      },
+      "101219_11": {
+        "imageUrls": {
+          "type": "array",
+          "items": {
+            "type": "unknown"
+          }
+        },
+        "nom": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "autre_nom": {
+          "type": "string"
+        },
+        "origine": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        }
+      },
+      "101219_12": {
+        "imageUrls": {
+          "type": "array",
+          "items": {
+            "type": "unknown"
+          }
+        },
+        "nom": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "autre_nom": {
+          "type": "string"
+        },
+        "origine": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "public_plats": {
+    "__documents__": {
+      "080478_C_Groupe8_plat32": {
+        "createdAt": {
+          "type": "DatetimeWithNanoseconds"
+        },
+        "description": {
+          "type": "string"
+        },
+        "imageUrls": {
+          "type": "array",
+          "items": {
+            "type": "unknown"
+          }
+        },
+        "autre_nom": {
+          "type": "string"
+        },
+        "origine": {
+          "type": "string"
+        },
+        "ingredients": {
+          "type": "array",
+          "items": {
+            "type": "unknown"
+          }
+        },
+        "nom": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        }
+      },
+      "100000_C_Groupe5_Plat17": {
+        "createdAt": {
+          "type": "DatetimeWithNanoseconds"
+        },
+        "description": {
+          "type": "string"
+        },
+        "imageUrls": {
+          "type": "array",
+          "items": {
+            "type": "unknown"
+          }
+        },
+        "autre_nom": {
+          "type": "string"
+        },
+        "origine": {
+          "type": "string"
+        },
+        "ingredients": {
+          "type": "array",
+          "items": {
+            "type": "unknown"
+          }
+        },
+        "nom": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        }
+      },
+      "100001_C_Groupe5_Plat18": {
+        "createdAt": {
+          "type": "DatetimeWithNanoseconds"
+        },
+        "description": {
+          "type": "string"
+        },
+        "imageUrls": {
+          "type": "array",
+          "items": {
+            "type": "unknown"
+          }
+        },
+        "autre_nom": {
+          "type": "string"
+        },
+        "origine": {
+          "type": "string"
+        },
+        "ingredients": {
+          "type": "array",
+          "items": {
+            "type": "unknown"
+          }
+        },
+        "nom": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        }
+      },
+      "100001_c_plat1": {
+        "createdAt": {
+          "type": "DatetimeWithNanoseconds"
+        },
+        "description": {
+          "type": "string"
+        },
+        "imageUrls": {
+          "type": "array",
+          "items": {
+            "type": "unknown"
+          }
+        },
+        "autre_nom": {
+          "type": "string"
+        },
+        "origine": {
+          "type": "string"
+        },
+        "ingredients": {
+          "type": "array",
+          "items": {
+            "type": "unknown"
+          }
+        },
+        "nom": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        }
+      },
+      "100002_C_Groupe5_Plat19": {
+        "createdAt": {
+          "type": "DatetimeWithNanoseconds"
+        },
+        "description": {
+          "type": "string"
+        },
+        "imageUrls": {
+          "type": "array",
+          "items": {
+            "type": "unknown"
+          }
+        },
+        "autre_nom": {
+          "type": "string"
+        },
+        "origine": {
+          "type": "string"
+        },
+        "ingredients": {
+          "type": "array",
+          "items": {
+            "type": "unknown"
+          }
+        },
+        "nom": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "shoppingLists": {
+    "__documents__": {
+      "2luOibhMglyEZRn9SH3c": {
+        "createdAt": {
+          "type": "DatetimeWithNanoseconds"
+        },
+        "name": {
+          "type": "string"
+        },
+        "ownerId": {
+          "type": "string"
+        },
+        "lastModified": {
+          "type": "DatetimeWithNanoseconds"
+        },
+        "sharedWith": {
+          "type": "array",
+          "items": {
+            "type": "unknown"
+          }
+        }
+      },
+      "EQIRWVwriRw2hlyhT9DN": {
+        "createdAt": {
+          "type": "DatetimeWithNanoseconds"
+        },
+        "name": {
+          "type": "string"
+        },
+        "ownerId": {
+          "type": "string"
+        },
+        "lastModified": {
+          "type": "DatetimeWithNanoseconds"
+        },
+        "sharedWith": {
+          "type": "array",
+          "items": {
+            "type": "unknown"
+          }
+        }
+      },
+      "o6lZaYPRdmSaEXCmx6Wj": {
+        "createdAt": {
+          "type": "DatetimeWithNanoseconds"
+        },
+        "name": {
+          "type": "string"
+        },
+        "ownerId": {
+          "type": "string"
+        },
+        "lastModified": {
+          "type": "DatetimeWithNanoseconds"
+        },
+        "sharedWith": {
+          "type": "array",
+          "items": {
+            "type": "unknown"
+          }
+        }
+      }
+    }
+  },
+  "shoppingLists/2luOibhMglyEZRn9SH3c/items": {
+    "__documents__": {
+      "1ZAei10pT5l3uvE2ZXAn": {
+        "addedBy": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "DatetimeWithNanoseconds"
+        },
+        "quantity": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "isCompleted": {
+          "type": "boolean"
+        },
+        "unit": {
+          "type": "string"
+        }
+      },
+      "2kV40F2BQm1CCJ5CRGMk": {
+        "addedBy": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "DatetimeWithNanoseconds"
+        },
+        "quantity": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "isCompleted": {
+          "type": "boolean"
+        },
+        "unit": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "shoppingLists/o6lZaYPRdmSaEXCmx6Wj/items": {
+    "__documents__": {
+      "elFi0nWd3laNXRguv8XT": {
+        "addedBy": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "DatetimeWithNanoseconds"
+        },
+        "quantity": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "isCompleted": {
+          "type": "boolean"
+        },
+        "unit": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "users": {
+    "__info__": "Empty collection"
+  }
+}
