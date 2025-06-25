@@ -1,335 +1,266 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   FlatList,
+  StyleSheet,
   TouchableOpacity,
   TextInput,
   Alert,
   ActivityIndicator,
-  Share,
-  Clipboard,
+  Image,
 } from 'react-native';
-import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import auth from '@react-native-firebase/auth';
-import Icon from 'react-native-vector-icons/Ionicons';
-import { useRoute, RouteProp } from '@react-navigation/native';
-import { RootStackParamList } from '../types/navigation'; 
+import firestore from '@react-native-firebase/firestore';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../types/navigation';
 
-type ShoppingListDetailScreenRouteProp = RouteProp<RootStackParamList, 'ShoppingListDetail'>;
+const PRIMARY_COLOR = '#1a2d5a';
+const ACCENT_COLOR = '#f57c00';
 
 interface ShoppingListItem {
-  id: string;
+  id?: string;
   name: string;
-  quantity: string;
+  quantity: number;
   unit: string;
-  isCompleted: boolean;
-  addedBy: string;
-  //  l'écriture, mais sera Timestamp après lecture
-  createdAt: FirebaseFirestoreTypes.FieldValue | FirebaseFirestoreTypes.Timestamp;
+  imageUrl?: string;
+  checked: boolean;
 }
 
-interface ShoppingListHeader {
-  id: string;
-  name: string;
-  ownerId: string;
-  sharedWith: string[];
-  // createdAt et lastModified peuvent être FieldValue au moment de l'écriture, mais seront Timestamp après lecture
-  createdAt: FirebaseFirestoreTypes.FieldValue | FirebaseFirestoreTypes.Timestamp;
-  lastModified: FirebaseFirestoreTypes.FieldValue | FirebaseFirestoreTypes.Timestamp;
-}
+type ShoppingListDetailScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  'ShoppingListDetail'
+>;
 
 const ShoppingListDetailScreen: React.FC = () => {
-  const route = useRoute<ShoppingListDetailScreenRouteProp>();
-  const { listId } = route.params; // L'ID de la liste est obligatoire ici
+  const navigation = useNavigation<ShoppingListDetailScreenNavigationProp>();
+  const route = useRoute();
+  const { listId } = route.params as { listId: string };
 
-  const [listName, setListName] = useState('');
-  const [listOwnerId, setListOwnerId] = useState('');
-  const [sharedUsers, setSharedUsers] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [listTitle, setListTitle] = useState('Liste de courses');
   const [items, setItems] = useState<ShoppingListItem[]>([]);
   const [newItemName, setNewItemName] = useState('');
-  const [newItemQuantity, setNewItemQuantity] = useState('');
-  const [newItemUnit, setNewItemUnit] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [addingItem, setAddingItem] = useState(false);
-  const userId = auth().currentUser?.uid;
+  const [newItemQty, setNewItemQty] = useState('1');
+  const [adding, setAdding] = useState(false);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: listTitle,
+      headerStyle: { backgroundColor: PRIMARY_COLOR },
+      headerTintColor: '#fff',
+    });
+  }, [navigation, listTitle]);
 
   useEffect(() => {
-    if (!userId) {
-      Alert.alert('Erreur', 'Utilisateur non connecté.');
+    if (!listId) {
       setLoading(false);
       return;
     }
 
-    // Listener pour les informations de la liste (nom, partages)
-    const listHeaderSubscriber = firestore()
-      .collection('shoppingLists')
-      .doc(listId)
-      .onSnapshot(
-        (snapshot) => {
-          if (snapshot.exists()) {
-            const data = snapshot.data() as ShoppingListHeader;
-            if (data && data.name && data.ownerId) {
-              setListName(data.name);
-              setListOwnerId(data.ownerId);
-              setSharedUsers(data.sharedWith || []);
-            } else {
-              console.warn('Incomplete data received from Firestore');
-            }
-          } else {
-            Alert.alert('Erreur', 'Cette liste de courses n\'existe plus.');
-            // navigation.goBack(); // Optionnel: revenir en arrière si la liste est supprimée
-          }
-        },
-        error => {
-          console.error("Erreur d'abonnement aux détails de la liste:", error);
-          Alert.alert('Erreur', 'Impossible de charger les détails de la liste.');
-        }
-      );
-
-    // Listener pour les articles de la liste
-    const itemsSubscriber = firestore()
-      .collection('shoppingLists')
-      .doc(listId)
-      .collection('items')
-      .orderBy('createdAt', 'asc') // Trier par date d'ajout
-      .onSnapshot(
-        querySnapshot => {
-          const loadedItems: ShoppingListItem[] = [];
-          querySnapshot.forEach(documentSnapshot => {
-            loadedItems.push({
-              id: documentSnapshot.id,
-              ...documentSnapshot.data(),
-            } as ShoppingListItem);
-          });
-          setItems(loadedItems);
-          setLoading(false);
-        },
-        error => {
-          console.error("Erreur d'abonnement aux articles de la liste:", error);
-          Alert.alert('Erreur', 'Problème de connexion aux articles de la liste.');
-          setLoading(false);
-        }
-      );
-
-    return () => {
-      listHeaderSubscriber();
-      itemsSubscriber();
-    };
-  }, [listId, userId]);
-
-  const handleAddItem = async () => {
-    if (!userId) return;
-    if (!newItemName.trim() || !newItemQuantity.trim() || !newItemUnit.trim()) {
-      Alert.alert('Erreur', 'Veuillez remplir le nom, la quantité et l\'unité.');
+    const userId = auth().currentUser?.uid;
+    if (!userId) {
+      setLoading(false);
       return;
     }
 
-    setAddingItem(true);
-    try {
-      await firestore()
-        .collection('shoppingLists')
-        .doc(listId)
-        .collection('items')
-        .add({
-          name: newItemName.trim(),
-          quantity: newItemQuantity.trim(),
-          unit: newItemUnit.trim(),
-          isCompleted: false,
-          addedBy: userId,
-          createdAt: firestore.FieldValue.serverTimestamp(),
-        });
-      setNewItemName('');
-      setNewItemQuantity('');
-      setNewItemUnit('');
-      // Mettre à jour lastModified de la liste parente
-      await firestore().collection('shoppingLists').doc(listId).update({
-        lastModified: firestore.FieldValue.serverTimestamp(),
-      });
-    } catch (error) {
-      console.error('Erreur lors de l\'ajout de l\'article à la liste:', error);
-      Alert.alert('Erreur', 'Impossible d\'ajouter l\'article.');
-    } finally {
-      setAddingItem(false);
-    }
+    // Subscribe to the shopping list document
+    const unsubscribe = firestore()
+      .collection('users')
+      .doc(userId)
+      .collection('shoppingLists')
+      .doc(listId)
+      .onSnapshot(
+        (doc) => {
+          if (doc.exists()) {
+            const data = doc.data() || {};
+            setItems(data.items || []);
+            setListTitle(data.name || 'Liste de courses');
+          }
+          setLoading(false);
+        },
+        (error) => {
+          console.error('Error loading shopping list:', error);
+          Alert.alert('Erreur', 'Impossible de charger la liste de courses');
+          setLoading(false);
+        }
+      );
+
+    return unsubscribe;
+  }, [listId]);
+
+  const toggleItem = (index: number) => {
+    const updatedItems = [...items];
+    updatedItems[index].checked = !updatedItems[index].checked;
+    setItems(updatedItems);
+    saveChanges(updatedItems);
   };
 
-  const toggleItemCompleted = async (itemId: string, currentStatus: boolean) => {
-    if (!userId) return;
-    try {
-      await firestore()
-        .collection('shoppingLists')
-        .doc(listId)
-        .collection('items')
-        .doc(itemId)
-        .update({
-          isCompleted: !currentStatus,
-        });
-      await firestore().collection('shoppingLists').doc(listId).update({
-        lastModified: firestore.FieldValue.serverTimestamp(),
-      });
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour de l\'article:', error);
-      Alert.alert('Erreur', 'Impossible de mettre à jour l\'article.');
-    }
-  };
-
-  const handleDeleteItem = async (itemId: string, itemName: string) => {
-    if (!userId) return;
+  const removeItem = (index: number) => {
     Alert.alert(
-      'Supprimer article',
-      `Voulez-vous supprimer "${itemName}" de la liste ?`,
+      'Confirmation',
+      'Voulez-vous supprimer cet article de la liste?',
       [
         { text: 'Annuler', style: 'cancel' },
         {
           text: 'Supprimer',
-          onPress: async () => {
-            try {
-              await firestore()
-                .collection('shoppingLists')
-                .doc(listId)
-                .collection('items')
-                .doc(itemId)
-                .delete();
-              await firestore().collection('shoppingLists').doc(listId).update({
-                lastModified: firestore.FieldValue.serverTimestamp(),
-              });
-              Alert.alert('Succès', `"${itemName}" supprimé.`);
-            } catch (error) {
-              console.error('Erreur lors de la suppression:', error);
-              Alert.alert('Erreur', 'Impossible de supprimer l\'article.');
-            }
-          },
           style: 'destructive',
+          onPress: () => {
+            const updatedItems = [...items];
+            updatedItems.splice(index, 1);
+            setItems(updatedItems);
+            saveChanges(updatedItems);
+          },
         },
       ]
     );
   };
 
-  const handleShareList = async () => {
-    if (!userId) {
-      Alert.alert('Erreur', 'Utilisateur non connecté.');
+  const addItem = () => {
+    if (!newItemName.trim()) {
+      Alert.alert('Erreur', 'Veuillez entrer le nom de l\'article');
       return;
     }
+
+    setAdding(true);
+    
     try {
-      const shareMessage = `Rejoignez ma liste de courses "${listName}" dans l'application ! Utilisez cet ID: \n\n${listId}\n\n`;
-      await Share.share({
-        message: shareMessage,
-        title: `Rejoindre la liste: ${listName}`,
-      });
-    } catch (error: any) {
-      Alert.alert('Erreur de partage', error.message);
+      const quantity = parseFloat(newItemQty) || 1;
+      
+      const newItem: ShoppingListItem = {
+        id: Math.random().toString(36).substring(2, 10),
+        name: newItemName.trim(),
+        quantity: quantity,
+        unit: '',
+        checked: false,
+      };
+      
+      const updatedItems = [...items, newItem];
+      setItems(updatedItems);
+      saveChanges(updatedItems);
+      
+      // Reset input fields
+      setNewItemName('');
+      setNewItemQty('1');
+    } catch (error) {
+      console.error('Error adding item:', error);
+      Alert.alert('Erreur', 'Impossible d\'ajouter l\'article');
+    } finally {
+      setAdding(false);
     }
   };
 
-  const handleCopyListId = () => {
-    Clipboard.setString(listId);
-    Alert.alert('ID Copié', 'L\'ID de la liste a été copié dans le presse-papiers !');
+  const saveChanges = async (updatedItems: ShoppingListItem[]) => {
+    try {
+      const userId = auth().currentUser?.uid;
+      if (!userId || !listId) return;
+
+      await firestore()
+        .collection('users')
+        .doc(userId)
+        .collection('shoppingLists')
+        .doc(listId)
+        .update({
+          items: updatedItems,
+          lastModified: firestore.FieldValue.serverTimestamp(),
+        });
+    } catch (error) {
+      console.error('Error saving changes:', error);
+      Alert.alert('Erreur', 'Impossible de sauvegarder les modifications');
+    }
+  };
+
+  const renderItem = ({ item, index }: { item: ShoppingListItem; index: number }) => {
+    return (
+      <TouchableOpacity
+        style={styles.itemRow}
+        onPress={() => toggleItem(index)}
+        onLongPress={() => removeItem(index)}
+      >
+        <Icon
+          name={item.checked ? 'checkbox-marked' : 'checkbox-blank-outline'}
+          size={24}
+          color={ACCENT_COLOR}
+          style={styles.checkbox}
+        />
+        
+        <View style={styles.itemContent}>
+          <Text style={[styles.itemName, item.checked && styles.checkedText]}>
+            {item.name}
+          </Text>
+          <Text style={styles.itemQuantity}>
+            {item.quantity} {item.unit}
+          </Text>
+        </View>
+        
+        {item.imageUrl && (
+          <Image
+            source={{ uri: item.imageUrl }}
+            style={styles.itemImage}
+            defaultSource={require('../../assets/images/slider/carotte_2.jpg')}
+          />
+        )}
+      </TouchableOpacity>
+    );
   };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="green" />
-        <Text>Chargement de la liste de courses...</Text>
+        <ActivityIndicator size="large" color={PRIMARY_COLOR} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{listName}</Text>
-      <View style={styles.shareContainer}>
-        <TouchableOpacity style={styles.shareButton} onPress={handleShareList}>
-          <Icon name="share-social-outline" size={20} color="white" />
-          <Text style={styles.shareButtonText}>Partager la liste</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.copyButton} onPress={handleCopyListId}>
-          <Icon name="copy-outline" size={20} color="white" />
-          <Text style={styles.shareButtonText}>Copier l'ID</Text>
-        </TouchableOpacity>
-      </View>
+      <FlatList
+        data={items}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id || Math.random().toString()}
+        contentContainerStyle={styles.listContainer}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Icon name="cart-outline" size={60} color="#ccc" />
+            <Text style={styles.emptyText}>La liste est vide</Text>
+          </View>
+        }
+      />
 
-      <View style={styles.inputContainer}>
+      <View style={styles.addContainer}>
         <TextInput
-          style={styles.input}
+          style={styles.nameInput}
           placeholder="Nom de l'article"
           value={newItemName}
           onChangeText={setNewItemName}
         />
-        <View style={styles.quantityRow}>
-          <TextInput
-            style={[styles.input, styles.quantityInput]}
-            placeholder="Qté"
-            value={newItemQuantity}
-            onChangeText={setNewItemQuantity}
-            keyboardType="numeric"
-          />
-          <TextInput
-            style={[styles.input, styles.unitInput]}
-            placeholder="Unité (ex: kg, L)"
-            value={newItemUnit}
-            onChangeText={setNewItemUnit}
-          />
-        </View>
+        
+        <TextInput
+          style={styles.quantityInput}
+          placeholder="Qté"
+          keyboardType="numeric"
+          value={newItemQty}
+          onChangeText={setNewItemQty}
+        />
+        
         <TouchableOpacity
-          style={[styles.addButton, addingItem && styles.addButtonDisabled]}
-          onPress={handleAddItem}
-          disabled={addingItem}
+          style={[styles.addButton, (!newItemName.trim() || adding) && styles.disabledButton]}
+          onPress={addItem}
+          disabled={!newItemName.trim() || adding}
         >
-          {addingItem ? (
-            <ActivityIndicator color="white" />
+          {adding ? (
+            <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <>
-              <Icon name="add-circle-outline" size={20} color="white" />
-              <Text style={styles.addButtonText}>Ajouter à la liste</Text>
-            </>
+            <Icon name="plus" size={24} color="#fff" />
           )}
         </TouchableOpacity>
       </View>
-
-      {items.length === 0 ? (
-        <View style={styles.emptyListContainer}>
-          <Icon name="cart-outline" size={60} color="#ccc" />
-          <Text style={styles.emptyListText}>Cette liste est vide.</Text>
-          <Text style={styles.emptyListText}>Ajoutez-y des articles ci-dessus !</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={items}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.itemCard}>
-              <TouchableOpacity
-                onPress={() => toggleItemCompleted(item.id, item.isCompleted)}
-                style={styles.checkboxContainer}
-              >
-                <Icon
-                  name={item.isCompleted ? 'checkbox-outline' : 'square-outline'}
-                  size={24}
-                  color={item.isCompleted ? 'green' : '#888'}
-                />
-              </TouchableOpacity>
-              <View style={styles.itemInfo}>
-                <Text style={[styles.itemName, item.isCompleted && styles.itemCompleted]}>
-                  {item.name}
-                </Text>
-                <Text style={[styles.itemQuantity, item.isCompleted && styles.itemCompleted]}>
-                  {item.quantity} {item.unit}
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => handleDeleteItem(item.id, item.name)}
-                style={styles.deleteButton}
-              >
-                <Icon name="trash-outline" size={20} color="#dc3545" />
-              </TouchableOpacity>
-            </View>
-          )}
-          contentContainerStyle={styles.listContent}
-        />
-      )}
+      
+      <Text style={styles.hintText}>
+        Appui long sur un article pour le supprimer
+      </Text>
     </View>
   );
 };
@@ -337,156 +268,113 @@ const ShoppingListDetailScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5fcff',
-    padding: 20,
+    backgroundColor: '#f8f9fa',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5fcff',
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: 'green',
-    marginBottom: 15,
-    textAlign: 'center',
+  listContainer: {
+    flexGrow: 1,
+    padding: 16,
   },
-  shareContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20,
-  },
-  shareButton: {
-    backgroundColor: '#007AFF',
-    padding: 10,
-    borderRadius: 8,
+  itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    marginRight: 5,
-  },
-  copyButton: {
-    backgroundColor: '#FFC107', // Couleur différente pour copier
-    padding: 10,
-    borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    marginLeft: 5,
-  },
-  shareButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginLeft: 5,
-  },
-  inputContainer: {
-    marginBottom: 20,
-    padding: 15,
-    backgroundColor: 'white',
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 10,
     backgroundColor: '#fff',
-  },
-  quantityRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  quantityInput: {
-    flex: 0.35,
-    marginRight: 10,
-  },
-  unitInput: {
-    flex: 0.65,
-  },
-  addButton: {
-    backgroundColor: 'green',
-    padding: 15,
-    borderRadius: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-  },
-  addButtonDisabled: {
-    backgroundColor: '#aaddaa',
-  },
-  addButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
-  emptyListContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  emptyListText: {
-    fontSize: 18,
-    color: '#888',
-    textAlign: 'center',
-    marginTop: 10,
-  },
-  listContent: {
-    paddingBottom: 20,
-  },
-  itemCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 15,
-    marginVertical: 8,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.1,
     shadowRadius: 2,
-    elevation: 3,
+    elevation: 2,
   },
-  checkboxContainer: {
-    marginRight: 10,
-    padding: 5,
+  checkbox: {
+    marginRight: 12,
   },
-  itemInfo: {
+  itemContent: {
     flex: 1,
   },
   itemName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 16,
+    color: PRIMARY_COLOR,
+    fontWeight: '500',
   },
   itemQuantity: {
-    fontSize: 16,
-    color: '#555',
-    marginTop: 5,
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
   },
-  itemCompleted: {
+  itemImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  checkedText: {
     textDecorationLine: 'line-through',
     color: '#999',
   },
-  deleteButton: {
-    marginLeft: 15,
-    padding: 5,
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#888',
+    marginTop: 10,
+  },
+  addContainer: {
+    flexDirection: 'row',
+    padding: 16,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  nameInput: {
+    flex: 1,
+    height: 48,
+    borderWidth: 1,
+    borderColor: PRIMARY_COLOR + '40',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#fff',
+    marginRight: 8,
+    color: PRIMARY_COLOR,
+  },
+  quantityInput: {
+    width: 60,
+    height: 48,
+    borderWidth: 1,
+    borderColor: PRIMARY_COLOR + '40',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#fff',
+    marginRight: 8,
+    textAlign: 'center',
+    color: PRIMARY_COLOR,
+  },
+  addButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: ACCENT_COLOR,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  disabledButton: {
+    backgroundColor: '#ccc',
+  },
+  hintText: {
+    textAlign: 'center',
+    color: PRIMARY_COLOR,
+    fontSize: 12,
+    paddingVertical: 8,
+    backgroundColor: '#fff',
   },
 });
 

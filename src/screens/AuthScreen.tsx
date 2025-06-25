@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, Image, SafeAreaView, ScrollView } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { initializeApp } from 'firebase/app';
 import auth from '@react-native-firebase/auth';
@@ -179,76 +180,132 @@ const AuthScreen: React.FC = () => {
     }
   };
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>
-        {isSignUp ? 'Créer un compte' : 'Se connecter'}
-      </Text>
+    <SafeAreaView style={styles.container}>
+      {/* Background Image with Overlay */}
+      <Image 
+        source={require('../../assets/images/intrance.png')} 
+        style={styles.backgroundImage}
+        blurRadius={5}
+      />
+      <View style={styles.overlay} />
+      
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+        <View style={styles.contentContainer}>
+          {/* Logo and App Title */}
+          <View style={styles.logoContainer}>
+            <View style={styles.logo}>
+              <Icon name="person" size={40} color="#fff" />
+            </View>
+            <Text style={styles.appTitle}>{isSignUp ? 'Create your account' : 'Log In'}</Text>
+          </View>
+          
+          {/* Form Container */}
+          <View style={styles.formContainer}>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholderTextColor="#999"
+              />
 
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  placeholderTextColor="#999"
+                />
+                <TouchableOpacity 
+                  style={styles.showPasswordButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Text style={styles.showPasswordText}>
+                    {showPassword ? 'Hide' : 'Show'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Mot de passe"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
+              {isSignUp && (
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Confirm Password"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={!showConfirmPassword}
+                    placeholderTextColor="#999"
+                  />
+                  <TouchableOpacity 
+                    style={styles.showPasswordButton}
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    <Text style={styles.showPasswordText}>
+                      {showConfirmPassword ? 'Hide' : 'Show'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
 
-        {isSignUp && (
-          <TextInput
-            style={styles.input}
-            placeholder="Confirmer le mot de passe"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-          />
-        )}
-      </View>
+            <TouchableOpacity
+              style={[styles.button, isLoading && styles.buttonDisabled]}
+              onPress={() => handleAuth(isSignUp)}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>
+                  {isSignUp ? 'Sign Up' : 'Log In'}
+                </Text>
+              )}
+            </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.button, isLoading && styles.buttonDisabled]}
-        onPress={() => handleAuth(isSignUp)}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <ActivityIndicator color="white" />
-        ) : (
-          <Text style={styles.buttonText}>
-            {isSignUp ? 'Créer un compte' : 'Se connecter'}
-          </Text>
-        )}
-      </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.toggleButton}
+              onPress={toggleAuthMode}
+            >
+              <Text style={styles.toggleButtonText}>
+                {isSignUp
+                  ? 'Already have an account? Sign in'
+                  : "Don't have an account? Sign up"}
+              </Text>
+            </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.toggleButton}
-        onPress={toggleAuthMode}
-      >
-        <Text style={styles.toggleButtonText}>
-          {isSignUp
-            ? 'Déjà un compte ? Se connecter'
-            : "Pas de compte ? Créer un compte"}
-        </Text>
-      </TouchableOpacity>
-
-      <View style={styles.googleButtonContainer}>
-        <GoogleSigninButton
-          style={{ width: 200, height: 48 }}
-          size={GoogleSigninButton.Size.Wide}
-          color={GoogleSigninButton.Color.Light}
-          onPress={signInWithGoogle}
-          disabled={isLoading}
-        />
-      </View>
-    </View>
+            {!isSignUp && (
+              <View style={styles.googleButtonContainer}>
+                <TouchableOpacity 
+                  style={styles.customGoogleButton}
+                  onPress={signInWithGoogle}
+                  disabled={isLoading}
+                >
+                  <View style={styles.googleIconContainer}>
+                    <Text style={styles.googleIconText}>G</Text>
+                  </View>
+                  <Text style={styles.googleButtonText}>Sign in with Google</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            
+            {isSignUp && (
+              <Text style={styles.termsText}>
+                By continuing, you agree to our Terms of Service and Privacy Policy.
+              </Text>
+            )}
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 

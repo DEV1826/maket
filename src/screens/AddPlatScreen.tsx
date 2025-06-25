@@ -7,6 +7,7 @@ import storage from '@react-native-firebase/storage';
 import auth from '@react-native-firebase/auth';
 import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { FirebaseService } from '../utils/firebaseConfig';
 
 //  navigation 
 import { RootStackParamList } from '../types/navigation';
@@ -23,7 +24,7 @@ interface Ingredient {
 const AddPlatScreen: React.FC = () => {
   const navigation = useNavigation<AddPlatScreenNavigationProp>();
   const route = useRoute<AddPlatScreenRouteProp>();
-  const { platId } = route.params || {};
+  const { platId, imageUrl: routeImageUrl } = route.params || {};
 
   const [nom, setNom] = useState('');
   const [description, setDescription] = useState('');
@@ -33,12 +34,17 @@ const AddPlatScreen: React.FC = () => {
   const [tempsCuisson, setTempsCuisson] = useState('');
   const [portions, setPortions] = useState('');
   const [categorie, setCategorie] = useState('');
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
 
   useEffect(() => {
+    // Set image from route params if available (when coming from PlatDetailScreen)
+    if (routeImageUrl) {
+      setImageUri(routeImageUrl);
+    }
+    
     if (platId) {
       setIsEditing(true);
       setLoading(true);
@@ -51,27 +57,24 @@ const AddPlatScreen: React.FC = () => {
           return;
         }
         try {
-          const platDoc = await firestore()
-            .collection('users')
-            .doc(userId)
-            .collection('plats')
-            .doc(platId)
-            .get();
-
-          if (platDoc.exists()) {
-            const data = platDoc.data();
-            setNom(data?.nom || '');
-            setDescription(data?.description || '');
-            setIngredients(data?.ingredients || [{ quantite: '', unite: '', nom: '' }]);
-            setEtapes(data?.etapes || ['']);
-            setTempsPreparation(data?.tempsPreparation?.toString() || '');
-            setTempsCuisson(data?.tempsCuisson?.toString() || '');
-            setPortions(data?.portions?.toString() || '');
-            setCategorie(data?.categorie || '');
-            setImageUrl(data?.imageUrl || null);
-            setImageUri(data?.imageUrl || null);
+          const result = await FirebaseService.getPlat(platId);
+          
+          if (result.success && result.data) {
+            const data = result.data as any;
+            setNom(data.nom ?? '');
+            setDescription(data.description ?? '');
+            setIngredients(data.ingredients ?? [{ quantite: '', unite: '', nom: '' }]);
+            setEtapes(data.etapes ?? ['']);
+            setTempsPreparation(data.tempsPreparation?.toString() ?? '');
+            setTempsCuisson(data.tempsCuisson?.toString() ?? '');
+            setPortions(data.portions?.toString() ?? '');
+            setCategorie(data.categorie ?? '');
+            // Use imageUrl from Firestore instead of imageUri
+            if (data.imageUrl && !routeImageUrl) {
+              setImageUri(data.imageUrl);
+            }
           } else {
-            Alert.alert('Erreur', 'Plat non trouvé.');
+            Alert.alert('Erreur', result.error ?? 'Plat non trouvé.');
             navigation.goBack();
           }
         } catch (error) {
@@ -115,10 +118,12 @@ const AddPlatScreen: React.FC = () => {
 
   const pickImage = async () => {
     const options = {
-      mediaType: 'photo' as 'photo', // Explicit casting
+      mediaType: 'photo' as 'photo',
       includeBase64: false,
-      maxHeight: 200,
-      maxWidth: 200,
+      maxHeight: 800,
+      maxWidth: 800,
+      quality: 0.8 as 0.8,
+      saveToPhotos: false,
     };
 
     launchImageLibrary(options, (response: ImagePickerResponse) => {
@@ -128,39 +133,17 @@ const AddPlatScreen: React.FC = () => {
         console.log('Erreur ImagePicker: ', response.errorMessage);
         Alert.alert('Erreur', 'Impossible de choisir l\'image.');
       } else if (response.assets && response.assets.length > 0) {
-        setImageUri(response.assets[0].uri || null);
+        const selectedAsset = response.assets[0];
+        setImageUri(selectedAsset.uri || null);
       }
     });
-  };
-
-  const uploadImage = async (uri: string): Promise<string> => {
-    const userId = auth().currentUser?.uid;
-    // CORRECTED LINE BELOW:
-    if (userId === null || userId === undefined) { // Check explicitly for null or undefined
-      throw new Error("User not authenticated for image upload.");
-    }
-
-    const filename = uri.substring(uri.lastIndexOf('/') + 1);
-    const uploadUri = Platform.OS === 'ios' ? uri.replace('file://', '') : uri;
-    const storageRef = storage().ref(`images/${userId}/${filename}`);
-
-    try {
-      await storageRef.putFile(uploadUri);
-      const url = await storageRef.getDownloadURL();
-      return url;
-    } catch (error) {
-      console.error("Erreur d'upload d'image:", error);
-      Alert.alert('Erreur', 'Impossible de télécharger l\'image.');
-      throw error;
-    }
   };
 
   const handleSavePlat = async () => {
     setLoading(true);
     const userId = auth().currentUser?.uid;
 
-    // CORRECTED LINE BELOW:
-    if (userId === null || userId === undefined) { // Check explicitly for null or undefined
+    if (!userId) {
       Alert.alert('Erreur', 'Vous devez être connecté pour enregistrer un plat.');
       setLoading(false);
       return;
@@ -171,42 +154,64 @@ const AddPlatScreen: React.FC = () => {
       return;
     }
 
-    let finalImageUrl = imageUrl;
-    if (imageUri && imageUri !== imageUrl) {
-      try {
-        finalImageUrl = await uploadImage(imageUri);
-      } catch (uploadError) {
-        setLoading(false);
-        return;
-      }
-    } else if (!imageUri) {
-      finalImageUrl = null;
-    }
-
-    const platData = {
-      nom: nom.trim(),
-      description: description.trim(),
-      ingredients: ingredients.filter(ing => ing.nom.trim()),
-      etapes: etapes.filter(etape => etape.trim()),
-      tempsPreparation: parseInt(tempsPreparation) || 0,
-      tempsCuisson: parseInt(tempsCuisson) || 0,
-      portions: parseInt(portions) || 1,
-      categorie: categorie.trim(),
-      imageUrl: finalImageUrl,
-      //  timestamp pour la création et la mise à jour
-      createdAt: isEditing ? firestore.FieldValue.serverTimestamp() : (firestore.FieldValue.serverTimestamp() || new Date()), // Ajouté un fallback pour le type
-      userId: userId,
-    };
-
     try {
-      if (isEditing && platId) {
-        await firestore().collection('users').doc(userId).collection('plats').doc(platId).update(platData);
-        Alert.alert('Succès', 'Plat mis à jour avec succès !');
-      } else {
-        await firestore().collection('users').doc(userId).collection('plats').add(platData);
-        Alert.alert('Succès', 'Plat ajouté avec succès !');
+      // Handle image upload if there's a new image
+      let imageUrl = routeImageUrl; // Default to the existing image URL
+      
+      if (imageUri && imageUri !== routeImageUrl) {
+        try {
+          // If we have a new image that's different from the original one
+          // Upload the new image to Firebase Storage
+          const imageFileName = `plats/${userId}/${Date.now()}.jpg`;
+          const reference = storage().ref(imageFileName);
+          
+          // If we're editing and replacing an existing image, try to delete the old one
+          if (isEditing && routeImageUrl) {
+            try {
+              const oldImageRef = storage().refFromURL(routeImageUrl);
+              await oldImageRef.delete();
+            } catch (deleteError) {
+              console.log('Error deleting old image, continuing anyway:', deleteError);
+              // Continue with upload even if delete fails
+            }
+          }
+          
+          // Upload the new image
+          await reference.putFile(imageUri);
+          imageUrl = await reference.getDownloadURL();
+        } catch (storageError) {
+          console.error('Storage error:', storageError);
+          // Continue without image if storage fails
+          Alert.alert('Avertissement', 'Impossible de télécharger l\'image. Le plat sera sauvegardé sans image.');
+          imageUrl = routeImageUrl; // Keep existing image or null
+        }
       }
-      navigation.goBack();
+
+      const platData = {
+        nom: nom.trim(),
+        description: description.trim(),
+        ingredients: ingredients.filter(ing => ing.nom.trim()),
+        etapes: etapes.filter(etape => etape.trim()),
+        tempsPreparation: parseInt(tempsPreparation) || 0,
+        tempsCuisson: parseInt(tempsCuisson) || 0,
+        portions: parseInt(portions) || 1,
+        categorie: categorie.trim(),
+        imageUrl: imageUrl, // Store the Firebase Storage URL
+      };
+
+      let result;
+      if (isEditing && platId) {
+        result = await FirebaseService.updatePlat(platId, platData);
+      } else {
+        result = await FirebaseService.addPlat(platData);
+      }
+
+      if (result.success) {
+        Alert.alert('Succès', isEditing ? 'Plat mis à jour avec succès !' : 'Plat ajouté avec succès !');
+        navigation.goBack();
+      } else {
+        Alert.alert('Erreur', result.error ?? 'Impossible d\'enregistrer le plat');
+      }
     } catch (error) {
       console.error("Erreur lors de la sauvegarde du plat:", error);
       Alert.alert('Erreur', 'Impossible d\'enregistrer le plat. Veuillez réessayer.');
@@ -215,26 +220,162 @@ const AddPlatScreen: React.FC = () => {
     }
   };
 
+  const searchForExistingPlat = async (nomToSearch: string) => {
+    if (nomToSearch.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      const result = await FirebaseService.searchPublicPlats(nomToSearch);
+      
+      if (result.success && result.data) {
+        setSearchResults(result.data);
+      } else {
+        console.log('Search failed:', result.error);
+        setSearchResults([]);
+      }
+    } catch (error) {
+      console.error('Error searching for plats:', error);
+      setSearchResults([]);
+    }
+  };
+
+  const selectExistingPlat = (plat: any) => {
+    // Show confirmation dialog for quick add
+    Alert.alert(
+      'Ajouter ce plat',
+      `Voulez-vous ajouter "${plat.displayName}" directement à vos plats ou le modifier d'abord ?`,
+      [
+        {
+          text: 'Modifier d\'abord',
+          onPress: () => {
+            // Fill the form with the selected plat data
+            setNom(plat.nom || '');
+            setDescription(plat.description || '');
+            setCategorie(''); // Not available in public_plats structure
+            
+            // Set image from public plat (use first image if available)
+            if (plat.imageUrl) {
+              setImageUri(plat.imageUrl);
+            }
+            
+            // Initialize empty arrays since public_plats doesn't have detailed ingredients/steps
+            setIngredients([{ quantite: '', unite: '', nom: '' }]);
+            setEtapes(['']);
+            setTempsPreparation('');
+            setTempsCuisson('');
+            setPortions('');
+            
+            // Clear search results
+            setSearchResults([]);
+          }
+        },
+        {
+          text: 'Ajouter directement',
+          onPress: () => quickAddPlat(plat)
+        },
+        {
+          text: 'Annuler',
+          style: 'cancel'
+        }
+      ]
+    );
+  };
+
+  const quickAddPlat = async (plat: any) => {
+    setLoading(true);
+    
+    try {
+      const platData = {
+        nom: plat.nom || '',
+        description: plat.description || '',
+        ingredients: [], // Empty since public_plats doesn't have detailed ingredients
+        etapes: [], // Empty since public_plats doesn't have detailed steps
+        tempsPreparation: 0,
+        tempsCuisson: 0,
+        portions: 1,
+        categorie: '',
+        imageUrl: plat.imageUrl || null, // Use the first image from imageUrls
+      };
+
+      const result = await FirebaseService.addPlat(platData);
+
+      if (result.success) {
+        Alert.alert('Succès', `"${plat.displayName}" a été ajouté à vos plats !`);
+        navigation.goBack();
+      } else {
+        Alert.alert('Erreur', result.error ?? 'Impossible d\'ajouter le plat');
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'ajout rapide du plat:", error);
+      Alert.alert('Erreur', 'Impossible d\'ajouter le plat. Veuillez réessayer.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading && isEditing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="green" />
-        <Text>Chargement des détails du plat...</Text>
+        <ActivityIndicator size="large" color="#1a2d5a" />
+        <Text style={{ color: '#1a2d5a', marginTop: 10 }}>Chargement des détails du plat...</Text>
       </View>
     );
   }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <Text style={styles.title}>{isEditing ? 'Modifier un plat' : 'Ajouter un nouveau plat'}</Text>
-
-      <Text style={styles.label}>Nom du plat :</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Ex: Poulet Yassa"
-        value={nom}
-        onChangeText={setNom}
-      />
+      <Text style={styles.heading}>{isEditing ? 'Modifier le Plat' : 'Ajouter un Nouveau Plat'}</Text>
+      
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Nom du plat</Text>
+        <TextInput
+          style={styles.input}
+          value={nom}
+          onChangeText={(text) => {
+            setNom(text);
+            if (!isEditing) {
+              searchForExistingPlat(text);
+            }
+          }}
+          placeholder="Nom du plat"
+        />
+        
+        {/* Search Results */}
+        {searchResults.length > 0 && (
+          <View style={styles.searchResultsContainer}>
+            {searchResults.map((result) => (
+              <TouchableOpacity
+                key={result.id}
+                style={styles.searchResultItem}
+                onPress={() => selectExistingPlat(result)}
+              >
+                <View style={styles.searchResultContent}>
+                  {result.imageUrl && (
+                    <Image 
+                      source={{ uri: result.imageUrl }} 
+                      style={styles.searchResultImage} 
+                      resizeMode="cover"
+                    />
+                  )}
+                  <View style={styles.searchResultTextContainer}>
+                    <Text style={styles.searchResultTitle}>{result.displayName}</Text>
+                    {result.description && (
+                      <Text style={styles.searchResultCategory} numberOfLines={2}>
+                        {result.description}
+                      </Text>
+                    )}
+                    {result.origine && (
+                      <Text style={styles.searchResultOrigin}>Origine: {result.origine}</Text>
+                    )}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
 
       <Text style={styles.label}>Description :</Text>
       <TextInput
@@ -255,7 +396,7 @@ const AddPlatScreen: React.FC = () => {
         </Text>
       </TouchableOpacity>
       {imageUri && (
-        <TouchableOpacity style={styles.removeImageButton} onPress={() => { setImageUri(null); setImageUrl(null); }}>
+        <TouchableOpacity style={styles.removeImageButton} onPress={() => { setImageUri(null); }}>
           <Text style={styles.removeImageButtonText}>Supprimer l'image</Text>
         </TouchableOpacity>
       )}
@@ -290,7 +431,7 @@ const AddPlatScreen: React.FC = () => {
         </View>
       ))}
       <TouchableOpacity style={styles.addButton} onPress={addIngredientField}>
-        <Icon name="add-circle-outline" size={20} color="green" />
+        <Icon name="add-circle-outline" size={20} color="#ff8c00" />
         <Text style={styles.addButtonText}>Ajouter un ingrédient</Text>
       </TouchableOpacity>
 
@@ -314,7 +455,7 @@ const AddPlatScreen: React.FC = () => {
         </View>
       ))}
       <TouchableOpacity style={styles.addButton} onPress={addEtapeField}>
-        <Icon name="add-circle-outline" size={20} color="green" />
+        <Icon name="add-circle-outline" size={20} color="#ff8c00" />
         <Text style={styles.addButtonText}>Ajouter une étape</Text>
       </TouchableOpacity>
 
@@ -369,55 +510,69 @@ const AddPlatScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  formGroup: {
+    marginBottom: 15,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#f5fcff',
+    backgroundColor: '#f8f9fa',
   },
   contentContainer: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 40,
   },
   loadingContainer: {
     flex: 1,
+    padding: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5fcff',
+    backgroundColor: '#f5f8ff',
   },
-  title: {
-    fontSize: 26,
+  heading: {
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 25,
+    marginBottom: 20,
+    color: '#1a2d5a',
     textAlign: 'center',
-    color: 'green',
   },
   label: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
     marginBottom: 8,
-    color: '#333',
+    color: '#1a2f5a', // Navy blue
     marginTop: 15,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: '#E0E0E0',
+    borderRadius: 10,
+    padding: 14,
     fontSize: 16,
-    marginBottom: 10,
+    marginBottom: 12,
     backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 1,
   },
   multilineInput: {
     minHeight: 100,
     textAlignVertical: 'top',
   },
   imagePickerButton: {
-    backgroundColor: '#007AFF',
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: '#ff8c00', // Yellow/orange color
+    padding: 14,
+    borderRadius: 10,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
   },
   imagePickerButtonText: {
     color: 'white',
@@ -427,10 +582,15 @@ const styles = StyleSheet.create({
   },
   previewImage: {
     width: '100%',
-    height: 200,
-    borderRadius: 8,
+    height: 220,
+    borderRadius: 12,
     marginTop: 10,
     resizeMode: 'cover',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
   },
   removeImageButton: {
     backgroundColor: '#dc3545',
@@ -444,11 +604,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
-    marginTop: 25,
+    marginTop: 30,
     marginBottom: 15,
-    color: 'green',
+    color: '#1a2f5a', // Navy blue
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
   },
   ingredientRow: {
     flexDirection: 'row',
@@ -483,16 +646,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#e6ffe6',
+    backgroundColor: '#fff8e6', // Light yellow background
     padding: 10,
     borderRadius: 8,
     marginTop: 5,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: 'green',
+    borderColor: '#ff8c00', // Yellow/orange border
   },
   addButtonText: {
-    color: 'green',
+    color: '#ff8c00', // Yellow/orange text
     fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 5,
@@ -502,25 +665,69 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
   saveButton: {
-    backgroundColor: 'green',
+    backgroundColor: '#1a2f5a', // Navy blue
     padding: 18,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
     marginTop: 30,
     marginBottom: 30,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
   },
   saveButtonDisabled: {
-    backgroundColor: '#aaddaa',
+    backgroundColor: '#8f9bba', // Lighter navy blue
   },
   saveButtonText: {
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  searchResultsContainer: {
+    marginTop: 5,
+    backgroundColor: '#fff',
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    maxHeight: 300,
+    overflow: 'hidden',
+  },
+  searchResultItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  searchResultContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchResultImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 5,
+    marginRight: 10,
+  },
+  searchResultTextContainer: {
+    flex: 1,
+  },
+  searchResultTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1a2d5a',
+  },
+  searchResultCategory: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 2,
+  },
+  searchResultOrigin: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2,
   },
 });
 

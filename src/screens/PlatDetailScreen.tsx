@@ -80,7 +80,8 @@ const PlatDetailScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color="#ff8c00" />
+        <Text style={styles.loadingText}>Chargement des détails du plat...</Text>
       </View>
     );
   }
@@ -134,8 +135,8 @@ const PlatDetailScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="green" />
-        <Text>Chargement des détails du plat...</Text>
+        <ActivityIndicator size="large" color="#ff8c00" />
+        <Text style={styles.loadingText}>Chargement des détails du plat...</Text>
       </View>
     );
   }
@@ -150,12 +151,15 @@ const PlatDetailScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {plat.imageUrl && (
-        <Image source={{ uri: plat.imageUrl }} style={styles.platImage} />
-      )}
-      {!plat.imageUrl && (
+      {plat.imageUrl ? (
+        <Image 
+          source={{ uri: plat.imageUrl }} 
+          style={styles.platImage}
+          resizeMode="cover"
+        />
+      ) : (
         <View style={styles.platImagePlaceholder}>
-          <Icon name="fast-food-outline" size={100} color="#ccc" />
+          <Icon name="fast-food-outline" size={100} color="#3a4f7a" />
           <Text style={styles.noImageText}>Pas d'image pour ce plat</Text>
         </View>
       )}
@@ -227,7 +231,10 @@ const PlatDetailScreen: React.FC = () => {
       <View style={styles.buttonRow}>
         <TouchableOpacity
           style={[styles.actionButton, styles.editButton]}
-          onPress={() => navigation.navigate('AddPlat', { platId: plat.id })}
+          onPress={() => navigation.navigate('AddPlat', { 
+            platId: plat.id,
+            imageUrl: plat.imageUrl
+          })}
         >
           <Icon name="create-outline" size={20} color="white" />
           <Text style={styles.actionButtonText}>Modifier</Text>
@@ -248,27 +255,28 @@ const PlatDetailScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5fcff',
+    backgroundColor: '#1a2f5a',
   },
   contentContainer: {
     paddingBottom: 40,
     paddingHorizontal: 20,
+    backgroundColor: '#1a2f5a',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5fcff',
+    backgroundColor: '#1a2f5a',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5fcff',
+    backgroundColor: '#1a2f5a',
   },
   emptyText: {
     fontSize: 18,
-    color: '#888',
+    color: '#ffffff',
   },
   platImage: {
     width: '100%',
@@ -297,19 +305,24 @@ const styles = StyleSheet.create({
   },
   noImageText: {
     marginTop: 10,
-    color: '#888',
+    color: '#ffffff',
+    fontSize: 16,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#ffffff',
     fontSize: 16,
   },
   platName: {
     fontSize: 30,
     fontWeight: 'bold',
-    color: 'green',
+    color: '#ff8c00',
     marginBottom: 10,
     textAlign: 'center',
   },
   platDescription: {
     fontSize: 16,
-    color: '#555',
+    color: '#ffffff',
     marginBottom: 20,
     lineHeight: 24,
     textAlign: 'center',
@@ -322,12 +335,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#eee',
+    borderColor: '#3a4f7a',
   },
   infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e6ffe6',
+    backgroundColor: '#2a3f6a',
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 20,
@@ -342,21 +355,21 @@ const styles = StyleSheet.create({
   infoText: {
     marginLeft: 8,
     fontSize: 14,
-    color: '#333',
+    color: '#ffffff',
     fontWeight: '600',
   },
   sectionTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: 'green',
+    color: '#ff8c00',
     marginTop: 30,
     marginBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#3a4f7a',
     paddingBottom: 5,
   },
   listContainer: {
-    backgroundColor: 'white',
+    backgroundColor: '#2a3f6a',
     borderRadius: 10,
     padding: 15,
     shadowColor: '#000',
@@ -377,13 +390,13 @@ const styles = StyleSheet.create({
   listItemText: {
     flex: 1,
     fontSize: 16,
-    color: '#444',
+    color: '#ffffff',
     lineHeight: 22,
   },
   stepNumber: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: 'green',
+    color: '#ff8c00',
     marginRight: 10,
     width: 25, // Fixed width for number
     textAlign: 'right',
@@ -408,7 +421,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   editButton: {
-    backgroundColor: '#007AFF', // Bleu
+    backgroundColor: '#ff8c00', // Yellow/orange
   },
   deleteButton: {
     backgroundColor: '#dc3545', // Rouge
