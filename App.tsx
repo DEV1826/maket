@@ -19,7 +19,9 @@ import {
 } from 'react-native';
 
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator, NativeStackScreenProps } from '@react-navigation/native-stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 type RootStackParamList = {
   Home: undefined;
@@ -37,13 +39,11 @@ type RootStackParamList = {
   ShoppingList: { list: ShoppingList };
 };
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
 import { ShoppingListActions } from './src/components/ShoppingListActions';
 import { ShoppingList } from './src/types/shoppingList';
 import { RecipeDetailScreen } from './src/screens/RecipeDetailScreen';
 import { RecipeCard } from './src/components/RecipeCard';
 
-const Stack = createNativeStackNavigator();
 
 const mockShoppingList: ShoppingList = {
   id: '1',
