@@ -16,9 +16,9 @@ import firestore from '@react-native-firebase/firestore';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
+import { COLORS } from '../constants/colors';
 
-const PRIMARY_COLOR = '#1a2d5a';
-const ACCENT_COLOR = '#f57c00';
+// Use shared theme colors
 
 interface ShoppingListItem {
   id?: string;
@@ -40,7 +40,7 @@ const ShoppingListDetailScreen: React.FC = () => {
   const { listId } = route.params as { listId: string };
 
   const [loading, setLoading] = useState(true);
-  const [listTitle, setListTitle] = useState('Liste de courses');
+  const [listTitle, setListTitle] = useState('Shopping List');
   const [items, setItems] = useState<ShoppingListItem[]>([]);
   const [newItemName, setNewItemName] = useState('');
   const [newItemQty, setNewItemQty] = useState('1');
@@ -49,8 +49,8 @@ const ShoppingListDetailScreen: React.FC = () => {
   useLayoutEffect(() => {
     navigation.setOptions({
       title: listTitle,
-      headerStyle: { backgroundColor: PRIMARY_COLOR },
-      headerTintColor: '#fff',
+      headerStyle: { backgroundColor: COLORS.primary },
+      headerTintColor: COLORS.white,
     });
   }, [navigation, listTitle]);
 
@@ -182,7 +182,7 @@ const ShoppingListDetailScreen: React.FC = () => {
         <Icon
           name={item.checked ? 'checkbox-marked' : 'checkbox-blank-outline'}
           size={24}
-          color={ACCENT_COLOR}
+          color={COLORS.accent}
           style={styles.checkbox}
         />
         
@@ -209,7 +209,7 @@ const ShoppingListDetailScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+        <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
     );
   }
@@ -223,7 +223,7 @@ const ShoppingListDetailScreen: React.FC = () => {
         contentContainerStyle={styles.listContainer}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Icon name="cart-outline" size={60} color="#ccc" />
+            <Icon name="cart-outline" size={60} color={COLORS.gray} />
             <Text style={styles.emptyText}>La liste est vide</Text>
           </View>
         }
@@ -235,45 +235,45 @@ const ShoppingListDetailScreen: React.FC = () => {
           placeholder="Nom de l'article"
           value={newItemName}
           onChangeText={setNewItemName}
+          placeholderTextColor={COLORS.lightGray}
         />
-        
         <TextInput
           style={styles.quantityInput}
           placeholder="Qté"
           keyboardType="numeric"
           value={newItemQty}
           onChangeText={setNewItemQty}
+          placeholderTextColor={COLORS.lightGray}
         />
         
         <TouchableOpacity
-          style={[styles.addButton, (!newItemName.trim() || adding) && styles.disabledButton]}
+          style={[styles.addButton, (!newItemName.trim() || adding) && styles.disabledButton, { backgroundColor: COLORS.accent }]}
           onPress={addItem}
           disabled={!newItemName.trim() || adding}
         >
           {adding ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={COLORS.white} />
           ) : (
-            <Icon name="plus" size={24} color="#fff" />
+            <Icon name="plus" size={24} color={COLORS.white} />
           )}
         </TouchableOpacity>
       </View>
       
-      <Text style={styles.hintText}>
-        Appui long sur un article pour le supprimer
-      </Text>
-    </View>
+      <Text style={styles.hintText}> Appui long sur un article pour le supprimer</Text>
+  </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.primaryDark,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: COLORS.primaryDark,
   },
   listContainer: {
     flexGrow: 1,
@@ -282,15 +282,10 @@ const styles = StyleSheet.create({
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.primary,
     padding: 12,
     borderRadius: 8,
     marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   checkbox: {
     marginRight: 12,
@@ -300,12 +295,12 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 16,
-    color: PRIMARY_COLOR,
+    color: COLORS.white,
     fontWeight: '500',
   },
   itemQuantity: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.lightGray,
     marginTop: 2,
   },
   itemImage: {
@@ -316,7 +311,7 @@ const styles = StyleSheet.create({
   },
   checkedText: {
     textDecorationLine: 'line-through',
-    color: '#999',
+    color: COLORS.gray,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -325,56 +320,56 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#888',
+    color: COLORS.lightGray,
     marginTop: 10,
   },
   addContainer: {
     flexDirection: 'row',
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.primary,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: COLORS.primaryDark,
   },
   nameInput: {
     flex: 1,
     height: 48,
     borderWidth: 1,
-    borderColor: PRIMARY_COLOR + '40',
+    borderColor: COLORS.primaryLight,
     borderRadius: 8,
     paddingHorizontal: 12,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.primaryDark,
     marginRight: 8,
-    color: PRIMARY_COLOR,
+    color: COLORS.white,
   },
   quantityInput: {
     width: 60,
     height: 48,
     borderWidth: 1,
-    borderColor: PRIMARY_COLOR + '40',
+    borderColor: COLORS.primaryLight,
     borderRadius: 8,
     paddingHorizontal: 12,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.primaryDark,
     marginRight: 8,
     textAlign: 'center',
-    color: PRIMARY_COLOR,
+    color: COLORS.white,
   },
   addButton: {
     width: 48,
     height: 48,
     borderRadius: 8,
-    backgroundColor: ACCENT_COLOR,
+    backgroundColor: COLORS.accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
   disabledButton: {
-    backgroundColor: '#ccc',
+    backgroundColor: COLORS.gray,
   },
   hintText: {
     textAlign: 'center',
-    color: PRIMARY_COLOR,
+    color: COLORS.lightGray,
     fontSize: 12,
     paddingVertical: 8,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.primary,
   },
 });
 

@@ -5,28 +5,25 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'; // Si 
 import Icon from 'react-native-vector-icons/Ionicons';
 import StockScreen from './screens/StockScreen';
 import ShoppingListDetailScreen from './screens/ShoppingListDetailScreen';
+import { COLORS } from './constants/colors';
 
 
 // Importez vos écrans
 import SplashScreen from './screens/SplashScreen'; // Nouvel écran de démarrage
 import AuthScreen from './screens/AuthScreen';
 import HomeScreen from './screens/HomeScreen';
-import MoiScreen from './screens/Moi'; // Renommé de 'Moi' à 'MoiScreen' pour la convention
-import HistoriqueScreen from './screens/Historique'; // Renommé de 'Historique'
+import MoiScreen from './screens/Moi';
+import MealHistoryScreen from './screens/MealHistoryScreen';
 import PlatsListScreen from './screens/PlatsListScreen';
 import AddPlatScreen from './screens/AddPlatScreen';
 import FoyerScreen from './screens/FoyerScreen';
+import PlatDetailScreen from './screens/PlatDetailScreen';
 import ShoppingListsScreen from './screens/ShoppingListsScreen';
-import MealPlannerScreen from './screens/MealPlannerScreen'; // Importez le nouveau fichier
-import BudgetManagementScreen from './screens/BudgetManagementScreen'; // Importez le nouveau fichier
-import PlatDetailScreen from './screens/PlatDetailScreen'; // Importez le nouveau fichier
-import NearbyMarketsScreen from './screens/NearbyMarketsScreen'; // Écran pour les marchés à proximité
-import AIAssistantScreen from './screens/AIAssistantScreen'; // Nouvel écran d'assistant IA
-import ChatScreen from './screens/ChatScreen'; // AI Chat screen
-// Importez vos autres écrans Foyer, Stock, ShoppingListGenerator si vous les avez
-
-// Importez le type de navigation que vous avez défini globalement
-import { RootStackParamList } from './types/navigation'; // Chemin corrigé
+import MealPlannerScreen from './screens/MealPlannerScreen';
+import BudgetManagementScreen from './screens/BudgetManagementScreen';
+import NearbyMarketsScreen from './screens/NearbyMarketsScreen';
+import AIAssistantScreen from './screens/AIAssistantScreen';
+import ChatScreen from './screens/ChatScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 // const Tab = createBottomTabNavigator(); // Si vous utilisez des onglets
@@ -39,52 +36,51 @@ const AppNavigator: React.FC = () => {
       <Stack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Moi" component={MoiScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Historique" component={HistoriqueScreen} options={{ title: 'Historique des Repas' }} />
+      <Stack.Screen name="Historique" component={MealHistoryScreen} options={{ title: 'Historique des Repas', headerStyle: { backgroundColor: COLORS.primary }, headerTintColor: COLORS.white }} />
       <Stack.Screen name="PlatsList" component={PlatsListScreen} options={{ 
         title: 'Mes Plats',
-        headerStyle: {
-          backgroundColor: '#1a2f5a', // Navy blue background
-        },
-        headerTintColor: '#ffffff', // White text and back button
+        headerStyle: { backgroundColor: COLORS.primary },
+        headerTintColor: COLORS.white,
         headerTitleStyle: {
           fontWeight: 'bold',
+          color: COLORS.white,
         },
       }} />
 
-      <Stack.Screen name="AddPlat" component={AddPlatScreen} options={({ route }) => ({
+      <Stack.Screen name="AddPlat" component={AddPlatScreen} options={({route }) => ({
         title: route.params?.platId ? 'Modifier le Plat' : 'Ajouter un Plat',
       })} />
 
       {/* --- VOICI LA CORRECTION POUR L'ÉCRAN "FOYER" --- */}
-      <Stack.Screen name="Foyer" component={FoyerScreen} options={{ title: 'Mon Foyer', // Titre statique, pas besoin de route.params
-}}
-      />
+      <Stack.Screen name="Foyer" component={FoyerScreen} options={{ title: 'Mon Foyer', headerStyle: { backgroundColor: COLORS.primary }, headerTintColor: COLORS.white }} />
       {/* --- AJOUT DE L'ÉCRAN "STOCK" POUR COMPLÉTUDE --- */}
       <Stack.Screen
         name="Stock"
         component={StockScreen}
         options={{
-          title: 'Mon Stock', // Titre statique également
+          title: 'Mon Stock',
+          headerStyle: { backgroundColor: COLORS.primary },
+          headerTintColor: COLORS.white,
         }}
         />
 
-      <Stack.Screen name="PlatDetail" component={PlatDetailScreen} options={{ title: 'Détails du Plat' }} />
+      <Stack.Screen name="PlatDetail" component={PlatDetailScreen} options={{ title: 'Détails du Plat', headerStyle: { backgroundColor: COLORS.primary }, headerTintColor: COLORS.white }} />
       {/* Ajoutez vos autres écrans ici */}
       <Stack.Screen name="ShoppingLists" component={ShoppingListsScreen} options={({ navigation }) => ({
         title: 'Mes Listes de Courses',
         headerStyle: {
-          backgroundColor: '#1a2d5a',
+          backgroundColor: COLORS.primary,
         },
-        headerTintColor: '#fff',
+        headerTintColor: COLORS.white,
         headerTitleStyle: {
           fontWeight: '600',
-          color: '#fff',
+          color: COLORS.white,
         },
         headerRight: () => (
           <TouchableOpacity
             onPress={() => navigation.navigate('NearbyMarkets')}
             style={{
-              backgroundColor: '#f57c00',
+              backgroundColor: COLORS.accent,
               paddingHorizontal: 12,
               paddingVertical: 6,
               borderRadius: 8,
@@ -94,18 +90,18 @@ const AppNavigator: React.FC = () => {
             }}
           >
             <Icon name="map-marker" size={18} color="#fff" />
-            <Text style={{ color: '#fff', marginLeft: 4, fontSize: 14, fontWeight: '600' }}>
+            <Text style={{ color: COLORS.white, marginLeft: 4, fontSize: 14, fontWeight: '600' }}>
               Marchés
             </Text>
           </TouchableOpacity>
         ),
       })} />
-      <Stack.Screen name="ShoppingListDetail" component={ShoppingListDetailScreen} options={({ route }) => ({
+      <Stack.Screen name="ShoppingListDetail" component={ShoppingListDetailScreen} options={({route }) => ({
         title: route.params?.listId ? 'Liste de Courses' : 'Détail Liste', // Le titre sera mis à jour dynamiquement dans l'écran
       })} />
       {/* Vous pouvez retirer ShoppingListGenerator si vous n'en avez plus besoin, ou le laisser pour une future implémentation de génération auto */}
-      <Stack.Screen name="MealPlanner" component={MealPlannerScreen} options={{ title: 'Planificateur de Repas' }} />
-      <Stack.Screen name="BudgetManagement" component={BudgetManagementScreen} options={{ title: 'Gestion du Budget' }} />
+      <Stack.Screen name="MealPlanner" component={MealPlannerScreen} options={{ title: 'Planificateur de Repas', headerStyle: { backgroundColor: COLORS.primary }, headerTintColor: COLORS.white }} />
+      <Stack.Screen name="BudgetManagement" component={BudgetManagementScreen} options={{ title: 'Gestion du Budget', headerStyle: { backgroundColor: COLORS.primary }, headerTintColor: COLORS.white }} />
       <Stack.Screen name="NearbyMarkets" component={NearbyMarketsScreen} options={{ title: 'Marchés à Proximité', headerShown: false }} />
       <Stack.Screen name="AIAssistant" component={AIAssistantScreen} options={{ title: 'Assistant Cuisine IA', headerShown: false }} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />

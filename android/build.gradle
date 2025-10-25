@@ -1,3 +1,5 @@
+// Fichier : android/build.gradle
+
 buildscript {
     ext {
         buildToolsVersion = "35.0.0"
@@ -23,6 +25,10 @@ allprojects {
     repositories {
         mavenCentral()
         google()
+        // C'EST LA LIGNE À AJOUTER
+        maven { url "https://maven.transistorsoft.com" }
+        // Si vous utilisez d'autres packages avec JitPack (c'était listé dans votre log d'erreur, donc vérifions aussi)
+        maven { url 'https://www.jitpack.io' }
         // ... autres repositories
     }
 }

@@ -15,6 +15,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
+import { COLORS } from '../constants/colors';
 
 interface ChatMessage {
   id: string;
@@ -182,7 +183,7 @@ const ChatScreen: React.FC = () => {
   if (loadingHistory) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1a2d5a" />
+        <ActivityIndicator size="large" color={COLORS.accent} />
         <Text style={styles.loadingText}>Chargement de la conversation...</Text>
       </View>
     );
@@ -199,10 +200,10 @@ const ChatScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Icon name="arrow-left" size={24} color="#fff" />
+          <Icon name="arrow-left" size={24} color={COLORS.white} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Icon name="chef-hat" size={24} color="#f57c00" />
+          <Icon name="chef-hat" size={24} color={COLORS.accent} />
           <Text style={styles.headerTitle}>Assistant Culinaire IA</Text>
         </View>
         <TouchableOpacity 
@@ -242,7 +243,7 @@ const ChatScreen: React.FC = () => {
           }}
           style={styles.clearButton}
         >
-          <Icon name="delete" size={20} color="#fff" />
+          <Icon name="delete" size={20} color={COLORS.white} />
         </TouchableOpacity>
       </View>
 
@@ -260,7 +261,7 @@ const ChatScreen: React.FC = () => {
       {/* Loading indicator */}
       {loading && (
         <View style={styles.typingIndicator}>
-          <ActivityIndicator size="small" color="#f57c00" />
+          <ActivityIndicator size="small" color={COLORS.accent} />
           <Text style={styles.typingText}>L'assistant culinaire réfléchit...</Text>
         </View>
       )}
@@ -272,7 +273,7 @@ const ChatScreen: React.FC = () => {
           value={inputText}
           onChangeText={setInputText}
           placeholder="Posez votre question culinaire..."
-          placeholderTextColor="#999"
+          placeholderTextColor={COLORS.lightGray}
           multiline
           maxLength={500}
         />
@@ -284,7 +285,7 @@ const ChatScreen: React.FC = () => {
           <Icon 
             name="send" 
             size={20} 
-            color={!inputText.trim() ? "#ccc" : "#fff"} 
+            color={!inputText.trim() ? COLORS.gray : COLORS.white} 
           />
         </TouchableOpacity>
       </View>
@@ -295,21 +296,21 @@ const ChatScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.primaryDark,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.primaryDark,
   },
   loadingText: {
     marginTop: 10,
-    color: '#1a2d5a',
+    color: COLORS.white,
     fontSize: 16,
   },
   header: {
-    backgroundColor: '#1a2d5a',
+    backgroundColor: COLORS.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -333,7 +334,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.white,
     marginLeft: 8,
   },
   clearButton: {
@@ -362,27 +363,22 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   userBubble: {
-    backgroundColor: '#1a2d5a',
+    backgroundColor: COLORS.primary,
     borderBottomRightRadius: 4,
   },
   aiBubble: {
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.primary,
     borderBottomLeftRadius: 4,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
   },
   messageText: {
     fontSize: 16,
     lineHeight: 22,
   },
   userText: {
-    color: '#fff',
+    color: COLORS.white,
   },
   aiText: {
-    color: '#333',
+    color: COLORS.white,
   },
   aiIcon: {
     marginLeft: 8,
@@ -396,7 +392,7 @@ const styles = StyleSheet.create({
   },
   typingText: {
     marginLeft: 8,
-    color: '#666',
+    color: COLORS.lightGray,
     fontStyle: 'italic',
   },
   inputContainer: {
@@ -404,7 +400,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.primary,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
@@ -414,16 +410,17 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: COLORS.primaryLight,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
     maxHeight: 100,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: COLORS.primaryDark,
+    color: COLORS.white,
   },
   sendButton: {
-    backgroundColor: '#f57c00',
+    backgroundColor: COLORS.accent,
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -437,7 +434,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   sendButtonDisabled: {
-    backgroundColor: '#ddd',
+    backgroundColor: COLORS.gray,
   },
 });
 

@@ -5,6 +5,7 @@ import { initializeApp } from 'firebase/app'; // <-- Importez initializeApp ici
 import auth from '@react-native-firebase/auth'; // <-- Gardez cette importation pour les hooks d'authentification
 import { GoogleSignin } from '@react-native-google-signin/google-signin'; // <-- Importez GoogleSignin ici
 import { Alert } from 'react-native';
+import { AppTheme } from './constants/theme';
 
 // Votre configuration Firebase (Assurez-vous que c'est la bonne)
 const firebaseConfig = {
@@ -51,7 +52,7 @@ const App = () => {
   }, []); // Le tableau vide assure que cela ne s'exécute qu'une fois au montage du composant.
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={AppTheme}>
       <Navigation />
     </NavigationContainer>
   );

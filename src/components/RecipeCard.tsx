@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { ShoppingListActions } from './ShoppingListActions';
 
 interface RecipeCardProps {
   recipe: {
@@ -14,28 +15,71 @@ interface RecipeCardProps {
     }>;
     instructions: string;
   };
+  onGenerateList?: () => void;
+  list?: {
+    id: string;
+    name: string;
+    items: Array<{
+      id: string;
+      name: string;
+      quantity: string;
+      purchased: boolean;
+      notes: string;
+      createdAt: Date;
+      updatedAt: Date;
+    }>;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
+  onDeleteList?: () => void;
 }
 
-export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
+export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onGenerateList, list, onDeleteList }) => {
   const navigation = useNavigation();
 
   const handlePress = () => {
     navigation.navigate('RecipeDetail', { recipe });
   };
 
+  const handleGenerate = () => {
+    if (onGenerateList) {
+      onGenerateList();
+    }
+  };
+
   return (
-    <TouchableOpacity style={styles.card} onPress={handlePress}>
-      <Image
-        source={{ uri: recipe.image }}
-        style={styles.image}
-      />
-      <View style={styles.content}>
-        <Text style={styles.title}>{recipe.name}</Text>
-        <Text style={styles.description}>
-          {recipe.ingredients.length} ingrédients
-        </Text>
-      </View>
-    </TouchableOpacity>
+    <View style={styles.card}>
+      <TouchableOpacity onPress={handlePress}>
+        <Image
+          source={{ uri: recipe.image }}
+          style={styles.image}
+        />
+        <View style={styles.content}>
+          <Text style={styles.title}>{recipe.name}</Text>
+          <Text style={styles.description}>
+            {recipe.ingredients.length} ingrédients
+          </Text>
+        </View>
+      </TouchableOpacity>
+      
+      {onGenerateList && (
+        <TouchableOpacity 
+          style={styles.generateButton}
+          onPress={handleGenerate}
+        >
+          <Text style={styles.buttonText}>Générer la liste</Text>
+        </TouchableOpacity>
+      )}
+
+      {list && onDeleteList && (
+        <View style={styles.actionContainer}>
+          <ShoppingListActions 
+            list={list} 
+            onDelete={onDeleteList} 
+          />
+        </View>
+      )}
+    </View>
   );
 };
 
@@ -71,5 +115,24 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 14,
     color: '#666',
+  },
+  generateButton: {
+    backgroundColor: '#4CAF50',
+    padding: 8,
+    borderRadius: 4,
+    marginTop: 8,
+    alignSelf: 'flex-end',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  actionContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+    marginRight: -8,
   },
 });

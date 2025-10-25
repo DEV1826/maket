@@ -16,6 +16,7 @@ import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import FloatingChatButton from '../components/FloatingChatButton';
+import { COLORS } from '../constants/colors';
 
 // Initialize the Google Generative AI with the API key
 const genAI = new GoogleGenerativeAI('AIzaSyCQmAnJ4QLHbqna7LiJsgY32xjW-JzXfaE');
@@ -234,12 +235,12 @@ const AIAssistantScreen: React.FC = () => {
           style={styles.featureCard}
           onPress={() => setSelectedFeature(feature)}
         >
-          <Icon name={feature.icon} size={40} color="#4CAF50" />
+          <Icon name={feature.icon} size={40} color={COLORS.accent} />
           <View style={styles.featureTextContainer}>
             <Text style={styles.featureTitle}>{feature.title}</Text>
             <Text style={styles.featureDescription}>{feature.description}</Text>
           </View>
-          <Icon name="chevron-forward" size={24} color="#757575" />
+          <Icon name="chevron-forward" size={24} color={COLORS.lightGray} />
         </TouchableOpacity>
       ))}
     </ScrollView>
@@ -256,7 +257,7 @@ const AIAssistantScreen: React.FC = () => {
           setAdditionalIngredients('');
         }}
       >
-        <Icon name="arrow-back" size={24} color="#4CAF50" />
+        <Icon name="arrow-back" size={24} color={COLORS.accent} />
         <Text style={styles.backButtonText}>Retour</Text>
       </TouchableOpacity>
 
@@ -267,7 +268,7 @@ const AIAssistantScreen: React.FC = () => {
         <>
           {stockLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#4CAF50" />
+              <ActivityIndicator size="large" color={COLORS.accent} />
               <Text style={styles.loadingText}>Chargement de votre stock...</Text>
             </View>
           ) : stockItems.length > 0 ? (
@@ -292,7 +293,7 @@ const AIAssistantScreen: React.FC = () => {
                 style={styles.refreshButton}
                 onPress={fetchUserStock}
               >
-                <Icon name="refresh-outline" size={16} color="#4CAF50" />
+                <Icon name="refresh-outline" size={16} color={COLORS.accent} />
                 <Text style={styles.refreshButtonText}>Actualiser les ingrédients</Text>
               </TouchableOpacity>
             </View>
@@ -311,7 +312,7 @@ const AIAssistantScreen: React.FC = () => {
                 style={styles.refreshButton}
                 onPress={fetchUserStock}
               >
-                <Icon name="refresh-outline" size={16} color="#4CAF50" />
+                <Icon name="refresh-outline" size={16} color={COLORS.accent} />
                 <Text style={styles.refreshButtonText}>Vérifier à nouveau</Text>
               </TouchableOpacity>
             </>
@@ -335,7 +336,7 @@ const AIAssistantScreen: React.FC = () => {
         <Text style={styles.generateButtonText}>
           {loading ? 'Génération en cours...' : 'Générer'}
         </Text>
-        {loading && <ActivityIndicator color="#fff" style={{marginLeft: 10}} />}
+        {loading && <ActivityIndicator color={COLORS.white} style={{marginLeft: 10}} />}
       </TouchableOpacity>
 
       {aiResponse && (
@@ -367,7 +368,7 @@ const AIAssistantScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.primaryDark,
   },
   featureContainer: {
     flex: 1,
@@ -376,18 +377,18 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1a2d5a',
+    color: COLORS.white,
     marginBottom: 10,
   },
   sectionDescription: {
     fontSize: 16,
-    color: '#666',
+    color: COLORS.lightGray,
     marginBottom: 20,
   },
   featureCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.primary,
     borderRadius: 10,
     padding: 15,
     marginBottom: 15,
@@ -404,11 +405,11 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1a2d5a',
+    color: COLORS.white,
   },
   featureDescription: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.lightGray,
     marginTop: 5,
   },
   interactionContainer: {
@@ -422,11 +423,11 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: '#f57c00',
+    color: COLORS.accent,
     marginLeft: 5,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.primaryDark,
     borderRadius: 10,
     padding: 15,
     marginTop: 10,
@@ -435,10 +436,11 @@ const styles = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: 'top',
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: COLORS.primaryLight,
+    color: COLORS.white,
   },
   generateButton: {
-    backgroundColor: '#f57c00',
+    backgroundColor: COLORS.accent,
     borderRadius: 10,
     padding: 15,
     alignItems: 'center',
@@ -446,29 +448,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   generateButtonText: {
-    color: '#fff',
+    color: COLORS.white,
     fontSize: 16,
     fontWeight: 'bold',
   },
   responseContainer: {
     marginTop: 20,
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.primary,
     borderRadius: 10,
     padding: 15,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: COLORS.primaryLight,
   },
   responseScroll: {
     flex: 1,
   },
   responseText: {
     fontSize: 16,
-    color: '#333',
+    color: COLORS.white,
     lineHeight: 24,
   },
   saveButton: {
-    backgroundColor: '#1a2d5a',
+    backgroundColor: COLORS.primary,
     borderRadius: 10,
     padding: 12,
     alignItems: 'center',
@@ -477,7 +479,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   saveButtonText: {
-    color: '#fff',
+    color: COLORS.white,
     fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 8,
@@ -490,21 +492,21 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#666',
+    color: COLORS.lightGray,
     marginTop: 10,
   },
   stockContainer: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: COLORS.primary,
     borderRadius: 10,
     padding: 15,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: COLORS.primaryDark,
   },
   stockTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: COLORS.white,
     marginBottom: 10,
   },
   stockItemsContainer: {
@@ -523,16 +525,16 @@ const styles = StyleSheet.create({
   },
   stockItemText: {
     fontSize: 14,
-    color: '#f57c00',
+    color: COLORS.accent,
   },
   additionalIngredientsLabel: {
     fontSize: 16,
-    color: '#333',
+    color: COLORS.white,
     marginBottom: 5,
   },
   noStockMessage: {
     fontSize: 16,
-    color: '#f57c00',
+    color: COLORS.accent,
     fontStyle: 'italic',
     marginVertical: 10,
     textAlign: 'center',
@@ -541,17 +543,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(26, 45, 90, 0.1)',
+    backgroundColor: 'rgba(26, 45, 90, 0.2)',
     borderRadius: 8,
     padding: 8,
     marginTop: 5,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: 'rgba(26, 45, 90, 0.3)',
+    borderColor: 'rgba(26, 45, 90, 0.4)',
   },
   refreshButtonText: {
     fontSize: 14,
-    color: '#1a2d5a',
+    color: COLORS.white,
     marginLeft: 5,
   },
 });

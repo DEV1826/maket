@@ -2,6 +2,7 @@ import React from 'react';
 import { TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
+import { COLORS } from '../constants/colors';
 
 interface FloatingChatButtonProps {
   bottom?: number;
@@ -49,7 +50,7 @@ const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({
         onPressOut={handlePressOut}
         activeOpacity={0.8}
       >
-        <Icon name="chef-hat" size={24} color="#fff" />
+        <Icon name="chef-hat" size={24} color={COLORS.white} />
       </TouchableOpacity>
     </Animated.View>
   );
@@ -64,7 +65,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#f57c00',
+    backgroundColor: COLORS.accent,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 6,
